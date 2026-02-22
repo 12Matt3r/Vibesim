@@ -1,0 +1,1317 @@
+:root {
+    --bg-primary: #0d0d0d;
+    --bg-secondary: #141414;
+    --bg-hover: #1f1f1f;
+    --border: #262626;
+    --fg: #e0e0e0;
+    --fg-muted: #888888;
+    --accent: #3b82f6;
+    --syntax-keyword: #569cd6;
+    --syntax-string: #ce9178;
+    --syntax-function: #dcdcaa;
+    --syntax-comment: #6a9955;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--fg); overflow: hidden; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
+
+/* Layout Components */
+.title-menu { position: relative; cursor: pointer; padding-bottom: 12px; } /* extra hit area so hover stays active when moving to menu */
+ /* Restore new file / new folder buttons */
+#new-file-btn, #new-folder-btn { display: flex !important; }
+.file-submenu {
+    position: absolute;
+    top: calc(100% - 8px); /* lift the submenu slightly up so the mouse can reach it */
+    left: 0;
+    background: #1a1a1a;
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    min-width: 180px;
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    padding: 6px;
+    border-radius: 8px;
+    margin-top: 0;
+    transform-origin: top left;
+    transition: transform 120ms ease;
+}
+.file-submenu[aria-hidden="false"] { display: flex; transform: translateY(-4px); }
+.submenu-item {
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 12px;
+    border-radius: 4px;
+    color: #ccc;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+.submenu-item:hover { background: #333; color: white; }
+
+/* View Switching Tabs */
+.view-tab {
+    padding: 0 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fg-muted);
+    border-right: 1px solid var(--border);
+    transition: all 0.2s;
+}
+.view-tab:hover { color: white; background: rgba(255,255,255,0.03); }
+.view-tab.active { color: white; background: rgba(255,255,255,0.05); box-shadow: inset 0 -2px 0 var(--accent); }
+
+/* Editor & Tabs */
+.tabs-bar { 
+    display: flex; 
+    height: 35px; 
+    min-height: 35px;          /* ensure visible height even when flexed */
+    flex: 0 0 auto;           /* prevent shrinking inside flex layouts */
+    align-items: center;      /* vertically center tab items */
+    background: #0d0d0d; 
+    border-bottom: 1px solid #1a1a1a; 
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    user-select: none;
+}
+.tabs-bar::-webkit-scrollbar { display: none; }
+
+.tab {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    min-width: 120px;
+    max-width: 200px;
+    padding: 0 8px 0 12px;
+    font-size: 12px;
+    color: #858585;
+    background: #0d0d0d;
+    border-right: 1px solid #1a1a1a;
+    cursor: pointer;
+    white-space: nowrap;
+    position: relative;
+    transition: background 0.1s, color 0.1s;
+}
+
+.tab:hover {
+    background: #1a1a1a;
+    color: #cccccc;
+}
+
+.tab.active { 
+    background: #1e1e1e; 
+    color: #ffffff; 
+    border-bottom: 1px solid #3b82f6;
+}
+
+.tab-icon {
+    font-size: 14px;
+    margin-right: 8px;
+    flex-shrink: 0;
+    opacity: 0.8;
+}
+
+.tab-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 6px;
+}
+
+.tab-close { 
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    opacity: 0; 
+    transition: opacity 0.2s, background 0.2s;
+    font-size: 12px;
+    color: #858585;
+}
+
+.tab:hover .tab-close, .tab.active .tab-close { 
+    opacity: 0.7; 
+}
+
+.tab-close:hover { 
+    opacity: 1 !important; 
+    background: #333333; 
+    color: #ffffff; 
+}
+
+.breadcrumb { 
+    font-size: 11px; 
+    padding: 6px 12px; 
+    color: var(--fg-muted); 
+    background: #141414; 
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+}
+
+.toolbar-btn {
+    padding: 4px;
+    border-radius: 4px;
+    color: #666;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.toolbar-btn:hover {
+    color: #fff;
+    background: #262626;
+}
+
+.search-result-item strong {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+/* Monaco editor container */
+#monaco-container { height: 100%; width: 100%; background: #141414; }
+
+/* legacy editor styles (kept for reference) */
+.editor-container { flex: 1; display: flex; overflow: hidden; background: #141414; }
+.editor-gutter { width: 50px; background: #141414; border-right: 1px solid #222; text-align: right; padding: 0 8px; font-family: 'JetBrains Mono'; font-size: 12px; color: #444; line-height: 20px; }
+.editor-scroll { flex: 1; overflow: auto; position: relative; }
+.editor-content { position: relative; padding: 0 12px; min-height: 100%; }
+.editor-textarea, .editor-highlight {
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 20px; white-space: pre; 
+    position: absolute; top: 0; left: 12px; right: 12px;
+}
+.editor-textarea {
+    background: transparent; color: transparent; caret-color: white; border: none; outline: none; resize: none; width: calc(100% - 24px); height: 100%; z-index: 2;
+}
+.editor-highlight { pointer-events: none; z-index: 1; }
+.current-line { position: absolute; left: 0; right: 0; height: 20px; background: rgba(255,255,255,0.03); pointer-events: none; }
+
+/* Panels and Sidebar */
+.panel { 
+    display: none !important; 
+    animation: fadeIn 0.2s ease-out;
+}
+.panel.active { display: flex !important; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.activity-item { 
+    width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; color: var(--fg-muted); cursor: pointer; border-radius: 12px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.activity-item:hover { color: white; background: #1a1a1a; transform: scale(1.05); }
+.activity-item.active { 
+    color: var(--accent); 
+    background: rgba(59,130,246,0.1); 
+    box-shadow: 0 0 15px rgba(59,130,246,0.2);
+}
+
+/* Chat Bubbles */
+.message { max-width: 92%; font-size: 13px; line-height: 1.6; position: relative; margin-bottom: 4px; }
+.user-vibe {
+    align-self: flex-end; 
+    background: linear-gradient(135deg, #1e1e1e 0%, #141414 100%); 
+    border: 1px solid #333; 
+    padding: 10px 14px; 
+    border-radius: 16px 16px 4px 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.assistant-vibe {
+    align-self: flex-start; 
+    width: 100%;
+    margin-bottom: 12px;
+}
+.assistant-vibe .message-content {
+    color: #e0e0e0;
+    padding: 8px 0;
+    border-bottom: 1px solid #1a1a1a;
+}
+
+/* AI Logic Blocks (Status Indicators) */
+.ai-status-card {
+    margin: 8px 0;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    min-width: 0;
+    /* Keep layout stable: prevent long text from pushing controls off-screen */
+    /* Do not allow items to expand beyond the container */
+    flex-wrap: nowrap;
+}
+
+/* Ensure the main content column can shrink and wrap text safely */
+.ai-status-card > div:first-child {
+    min-width: 0;               /* allow flex child to shrink */
+    overflow: hidden;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: normal;        /* allow wrapping, including long words */
+}
+
+/* Reserve a fixed column for action controls so buttons remain visible */
+.ai-status-card > div:last-child {
+    flex: 0 0 110px;            /* fixed width column for buttons */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+/* When the content includes a preformatted block, ensure it still wraps and scrolls */
+.ai-status-card .pre-wrap {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+    overflow: auto;
+}
+
+/* Small badges/buttons within controls should not overflow parent */
+.ai-status-card .ai-status-badge, .ai-status-card .btn-secondary, .ai-status-card .btn-primary {
+    max-width: 100%;
+    box-sizing: border-box;
+    word-break: break-word;
+}
+
+/* Ensure child columns can shrink and long text wraps */
+.ai-status-card > div { min-width: 0; }
+
+.ai-status-icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* Main text area: allow wrapping, prevent overflow, and keep layout stable */
+.ai-status-text {
+    flex: 1;
+    color: #aaa;
+    overflow: hidden;
+    word-break: break-word;
+    white-space: normal;
+}
+
+/* Keep action controls fixed size and prevent them from being pushed off-screen */
+.ai-status-card > div:last-child {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-left: 12px;
+}
+
+/* Small badges and buttons */
+.ai-status-badge { font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; white-space: nowrap; }
+.badge-added { background: #22c55e20; color: #22c55e; }
+.badge-edited { background: #eab30820; color: #eab308; }
+
+/* Custom tasks viewer floating card */
+#custom-tasks-viewer { box-shadow: 0 12px 30px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.03); }
+#custom-tasks-viewer .ai-status-badge { background: #222; color: #ddd; border-radius: 6px; text-transform: none; }
+#custom-tasks-viewer .btn-primary { padding: 6px 10px; font-size: 13px; }
+#custom-tasks-viewer .btn-secondary { padding: 6px 10px; font-size: 13px; }
+
+/* File Tree Styles */
+.file-row, .folder-row { height: 28px; display: flex; items-center; font-size: 12px; cursor: pointer; padding: 0 12px; color: #bbb; }
+.file-row:hover, .folder-row:hover { background: #1a1a1a; color: white; }
+.file-row.selected { background: #141414; color: var(--accent); }
+.file-icon, .folder-icon { width: 14px; height: 14px; margin-right: 8px; opacity: 0.7; }
+
+/* Resizer */
+.resizer { width: 2px; background: transparent; cursor: col-resize; transition: background 0.2s; }
+.resizer:hover { background: var(--accent); }
+
+/* Responsive Sidebar */
+/* Provide sensible min/max widths for the sidebar so extreme resizes don't break layout */
+#right-sidebar { min-width: 240px; max-width: 720px; }
+
+/* Collapsed state remains the same */
+#right-sidebar.collapsed { width: 48px !important; }
+#right-sidebar.collapsed .flex-1 { display: none; }
+
+/* Ensure internal panels and cards can shrink without overflowing their flex container */
+#right-sidebar .flex-1,
+#right-sidebar .panel,
+#right-sidebar .ai-status-card,
+#credits-content,
+#credits-content > div {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Allow sidebar panels to scroll if their contents grow; prevent visual overlap */
+#right-sidebar .panel { overflow: auto; }
+
+/* Make credit cards wrap their internal content gracefully when sidebar is narrow or very wide */
+#credits-content .ai-status-card {
+  word-break: break-word;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+/* Generating indicator (animated) */
+.ai-generating-wrap {
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border: 1px solid #222;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    color: #cbd5e1;
+}
+.ai-spinner { display: flex; align-items: center; gap: 10px; }
+.ai-spinner-svg { width: 30px; height: 30px; transform-origin: center; animation: spin 1s linear infinite; }
+.ai-spinner-svg .path { stroke: #3b82f6; stroke-linecap: round; stroke-dasharray: 90; stroke-dashoffset: 60; animation: dash 1.2s ease-in-out infinite; }
+.ai-generating-text { font-size: 12px; color: #9aa6b2; }
+
+/* Full-chat generating overlay (covers chat messages and status cards but preserves the input/Stop area) */
+/* Non-blocking bottom generating bar that sits inside the chat flow (after messages). */
+.vibesim-generating-overlay {
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    pointer-events: none; /* allow clicks to pass through except on the card */
+    margin-top: 12px;
+    z-index: 900;
+}
+.vibesim-generating-overlay .vibesim-generating-card {
+    pointer-events: auto;
+    width: min(680px, 92%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 12px;
+    color: #e6eef8;
+    font-weight: 700;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
+
+/* Card shown centered in the overlay */
+.vibesim-generating-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 12px;
+    color: #e6eef8;
+    font-weight: 700;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+}
+
+/* Ensure spinner remains visible and accessible */
+.vibesim-generating-card .ai-spinner-svg { width: 36px; height: 36px; }
+.vibesim-generating-text { font-size: 13px; color: #cbd5e1; font-weight: 700; }
+
+/* Previously: muting of chat when overlay was present — removed so the new bottom generating bar doesn't dim content. */
+
+/* Custom Dropdown */
+.custom-dropdown {
+    position: relative;
+    font-size: 11px;
+    color: #888;
+}
+.dropdown-trigger {
+    background: #1a1a1a;
+    border: 1px solid #262626;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+.dropdown-trigger:hover {
+    border-color: #444;
+    color: #ccc;
+}
+.dropdown-menu {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    min-width: 240px;   /* slightly narrower so the menu is less intrusive */
+    max-width: 380px;
+    max-height: 240px;  /* reduced height so menu doesn't cover so much vertical space */
+    overflow: auto;     /* enable scrolling when many models exist */
+    display: none;
+    flex-direction: column;
+    padding: 4px;
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+/* Keep the Post menu reachable by removing the tiny gap between the button and menu.
+   Target the specific Post menu container to nudge it slightly upward so the mouse can
+   move from the Post button into the menu without it collapsing. */
+#post-menu-container .group-hover\:flex {
+    margin-top: -8px;
+    transform: translateY(-4px);
+    transition: transform 120ms ease;
+}
+
+/* Make the Abilities dropdown menu specifically narrower than the model menu */
+#abilities-menu {
+    min-width: 180px;
+    max-width: 290px;
+    max-height: 300px;
+    padding: 6px;
+}
+.dropdown-menu.show {
+    display: flex;
+}
+.dropdown-option {
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+    gap: 8px;
+}
+.dropdown-option:hover {
+    background: #262626;
+    color: white;
+}
+.dropdown-option.selected {
+    color: #3b82f6;
+    background: rgba(59,130,246,0.1);
+}
+
+.dropdown-checkbox-option {
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
+    font-size: 11px;
+    border: 1px solid transparent;
+}
+.dropdown-checkbox-option:hover {
+    background: #252525;
+    border-color: #333;
+}
+.dropdown-checkbox-option.enabled {
+    background: rgba(59,130,246,0.05);
+    border-color: rgba(59,130,246,0.2);
+}
+.dropdown-checkbox-option:hover {
+    background: #262626;
+}
+.dropdown-checkbox-option input {
+    cursor: pointer;
+    accent-color: #3b82f6;
+}
+.dropdown-checkbox-option label {
+    cursor: pointer;
+    flex: 1;
+    white-space: nowrap;
+}
+.cost-tag {
+    font-size: 9px;
+    opacity: 0.6;
+    background: #000;
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+/* Project Manager Overlay */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 2000; /* Standard base modal depth */
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+    pointer-events: none; /* default to non-interactive until explicitly shown */
+}
+.modal-overlay.show {
+    display: flex;
+    pointer-events: auto; /* allow clicks when visible */
+}
+
+/* Ensure project modals receive pointer events and their buttons are above overlay siblings */
+.project-modal {
+    pointer-events: auto;
+    position: relative;
+    z-index: 2100;
+}
+
+/* Make modal footer buttons reliably clickable above overlays/stacked elements */
+.project-modal .modal-footer button,
+.project-modal .btn-primary,
+.project-modal .btn-secondary {
+    pointer-events: auto;
+    position: relative;
+    z-index: 2110;
+}
+
+/* Popup/Dialog Layering */
+#vibesim-dialog { z-index: 4000; } /* Highest priority confirmation dialogs */
+#create-project-modal { z-index: 3000; } /* Intermediate creation popup */
+#project-manager-modal { z-index: 2000; } /* Background manager */
+#project-manager-guide-modal { z-index: 3500; }
+
+.project-modal {
+    background: #0d0d0d;
+    border: 1px solid #262626;
+    border-radius: 16px;
+    overflow: hidden;
+    background-clip: padding-box;
+    width: 640px;
+    max-width: 95vw;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 20px 50px rgba(0,0,0,0.9);
+    animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fullscreen-home {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    border: none !important;
+}
+
+.websim-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    padding: 32px;
+}
+
+.websim-card {
+    background: #0d0d0d;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #1f1f1f;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    position: relative;
+
+    /* increase vertical spacing to avoid cramped stacked previews */
+    gap: 12px;
+    padding-bottom: 12px;
+    /* ensure consistent min height so cards align vertically */
+    min-height: 320px;
+}
+
+.websim-card:hover {
+    transform: translateY(-6px);
+    border-color: #3b82f6aa;
+    box-shadow: 0 12px 36px -8px rgba(59, 130, 246, 0.4);
+    background: #121212;
+}
+
+.social-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #262626;
+    background: #1a1a1a;
+    object-fit: cover;
+}
+
+.like-animation {
+    animation: likePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes likePop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.4); color: #ef4444; }
+    100% { transform: scale(1); }
+}
+
+.social-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #888;
+    transition: color 0.2s;
+}
+
+.social-stat:hover {
+    color: #fff;
+}
+
+.websim-card-preview {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    object-fit: cover;
+    border-bottom: 1px solid #262626;
+
+    /* larger visual preview and spacing to avoid stacked clipping */
+    min-height: 160px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+}
+
+.websim-card-content {
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.websim-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.websim-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #888;
+    margin-top: auto;
+}
+
+.websim-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #262626;
+}
+
+.asset-preview-popup {
+    position: fixed;
+    z-index: 10000;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    pointer-events: none;
+    display: none;
+    max-width: 200px;
+}
+
+.asset-preview-popup img {
+    max-width: 100%;
+    border-radius: 4px;
+}
+
+.asset-preview-popup .audio-info {
+    font-size: 10px;
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+@keyframes modalPop {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+.modal-header { 
+    padding: 20px 24px; 
+    border-bottom: 1px solid #222; 
+    font-size: 18px;
+    font-weight: 700; 
+    letter-spacing: -0.02em;
+    background: #121212;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+}
+.project-list { 
+    flex: 1; 
+    overflow-y: auto; 
+    padding: 12px;
+    /* Use a responsive grid so project cards lay out consistently */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 28px;
+    align-items: start;
+    background: #0d0d0d;
+}
+.project-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: #141414;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 1px solid #222;
+    transition: all 0.15s ease;
+    gap: 16px;
+}
+.project-item:hover { 
+    border-color: #3b82f644; 
+    background: #1a1a1a;
+    transform: translateX(4px);
+}
+.project-item.active { 
+    border-color: #3b82f6; 
+    background: rgba(59,130,246,0.08); 
+}
+.project-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: #3b82f6;
+}
+.project-actions { display: flex; gap: 8px; }
+.modal-footer { padding: 16px; border-top: 1px solid #262626; display: flex; justify-content: flex-end; gap: 12px; }
+.btn-primary { background: #3b82f6; color: white; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; }
+.btn-secondary { background: #262626; color: #ccc; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; }
+
+/* Template Browser Styles */
+.modal-tabs {
+    display: flex;
+    padding: 0 20px;
+    border-bottom: 1px solid #222;
+    background: #121212;
+}
+.modal-tab-btn {
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #888;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+.modal-tab-btn.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+}
+
+/* Visual active state for the feed filter buttons (Hot / New) to outline and color when selected */
+#feed-filter-hot.active,
+#feed-filter-new.active,
+.btn-secondary.active {
+    outline: 2px solid rgba(59,130,246,0.16);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.06), inset 0 -2px 0 rgba(59,130,246,0.12);
+    color: #e6f2ff;
+    border-color: rgba(59,130,246,0.18);
+    background: linear-gradient(180deg, rgba(59,130,246,0.04), rgba(59,130,246,0.02));
+}
+
+.template-grid, .feed-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    padding: 24px;
+    overflow: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* Homepage banner (compact, prominent, purple) */
+.homepage-banner {
+    box-sizing: border-box;
+    padding: 10px 12px; /* reduced vertical/horizontal padding to shrink height */
+    margin: 10px auto 0;
+    border-radius: 8px;
+    background: linear-gradient(90deg, rgba(124,58,237,0.10), rgba(139,92,246,0.06));
+    border: 1px solid rgba(139,92,246,0.14);
+    color: #efe9ff;
+    display: flex;
+    gap: 10px;
+    align-items: center; /* align center to reduce vertical space */
+    box-shadow: 0 6px 18px rgba(99,102,241,0.05);
+    font-size: 12px; /* slightly smaller text */
+    line-height: 1.25;
+    /* Constrain banner to viewport width with padding removed from sides to avoid horizontal scrolling */
+    max-width: calc(100% - 32px);
+    width: 100%;
+    overflow: hidden;
+    flex-wrap: wrap;
+}
+.homepage-banner .hb-title {
+    font-weight: 800;
+    color: #f3e8ff;
+    margin-bottom: 2px;
+    letter-spacing: -0.02em;
+    font-size: 14px;
+    line-height: 1;
+}
+.homepage-banner .hb-body {
+    color: #e6defb;
+    font-size: 12px; /* slightly smaller body text */
+    /* allow body text to wrap and avoid forcing large min-width */
+    max-width: 100%;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+.homepage-banner a {
+    color: #d6bcff;
+    text-decoration: underline;
+}
+.homepage-banner .hb-icon {
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(139,92,246,0.16), rgba(124,58,237,0.06));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+    color:#fff;
+    box-shadow: inset 0 -4px 12px rgba(0,0,0,0.10);
+    margin-bottom: 0;
+}
+
+/* preserve previous carousel-container rules */
+.carousel-container {
+    padding: 24px;
+    background: #090909;
+    border-bottom: 1px solid #1a1a1a;
+    position: relative;
+    overflow: hidden;
+}
+
+.carousel-track {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    scrollbar-width: none;
+}
+
+.carousel-track::-webkit-scrollbar { display: none; }
+
+.carousel-item {
+    flex: 0 0 280px;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.carousel-item:hover {
+    border-color: #3b82f6;
+    transform: translateY(-4px);
+}
+
+.player-container {
+    display: flex;
+    height: 100%;
+    background: #000;
+}
+
+.player-main {
+    flex: 1;
+    position: relative;
+}
+
+.player-sidebar {
+    width: 340px;
+    background: #0d0d0d;
+    border-left: 1px solid #222;
+    display: flex;
+    flex-direction: column;
+}
+
+.external-resource-popup {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a1a;
+    border: 1px solid #f87171;
+    border-radius: 12px;
+    padding: 16px;
+    z-index: 10000;
+    max-width: 400px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from { transform: translate(-50%, -100%); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+}
+.template-card {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 12px;
+    /* allow overflow so badges and descriptions aren't clipped */
+    overflow: visible;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+}
+.template-card:hover {
+    transform: translateY(-4px);
+    border-color: #444;
+}
+.template-preview {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    object-fit: cover;
+    border-bottom: 1px solid #333;
+}
+.template-info {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;               /* give a bit more breathing room so badge and desc don't collide */
+    min-height: 92px;       /* ensure consistent card height so desc and badge have room */
+    box-sizing: border-box;
+    overflow: visible;      /* allow children (badge) to be visible */
+}
+.template-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+}
+.template-author {
+    font-size: 11px;
+    color: #666;
+}
+.template-desc {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #9aa6b2;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;        /* allow one extra line to reduce truncation */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 3.2em;            /* reserve vertical space for readability */
+    word-break: break-word;
+}
+.official-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(59,130,246,0.08);
+    color: #3b82f6;
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-top: 8px;              /* ensure badge doesn't overlap description */
+    font-weight: 800;
+    align-self: flex-start;      /* keep badge aligned to card left edge */
+    white-space: nowrap;
+    position: relative;          /* keep above surrounding content */
+    z-index: 10;
+}
+
+.project-thumbnail {
+    width: 100px;
+    height: 56px;
+    background: #000;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid #222;
+    flex-shrink: 0;
+}
+
+/* Snackbar & Dialogs */
+.snackbar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #1f2937;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    z-index: 60000;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.snackbar.show { transform: translateX(-50%) translateY(0); }
+
+.creation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 24px;
+}
+
+.creation-option {
+    background: #161616;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    gap: 12px;
+}
+
+.creation-option:hover {
+    background: #1f1f1f;
+    border-color: #3b82f6;
+    transform: translateY(-4px);
+}
+
+.creation-option svg {
+    width: 48px;
+    height: 48px;
+    color: #3b82f6;
+    opacity: 0.8;
+}
+
+/* animations */
+/* small info-icon with tooltip for dropdowns */
+.info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    color: #9aa6b2;
+    border-radius: 4px;
+    cursor: default;
+    position: relative;
+    line-height: 1;
+}
+.info-icon:hover { color: #cbd5e1; }
+
+/* Hide the CSS ::after tooltip within dropdown menus (we will show a floating body-attached tooltip to avoid clipping) */
+.dropdown-menu .info-icon::after {
+    display: none;
+}
+
+/* Floating tooltip used by JS for info-icon elements in dropdowns */
+.vibesim-floating-tooltip {
+    position: fixed;
+    background: #0b1114;
+    color: #cbd5e1;
+    border: 1px solid rgba(255,255,255,0.04);
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    white-space: normal;
+    max-width: 36ch;
+    word-wrap: break-word;
+    z-index: 2200;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 120ms ease, transform 120ms ease;
+    transform-origin: left center;
+}
+.vibesim-floating-tooltip.show {
+    opacity: 1;
+}
+
+/* Special case: show the tooltip to the LEFT when .left is applied (used in credits daily info) */
+.info-icon.left::after {
+    left: auto;
+    right: calc(100% + 8px);
+    transform-origin: right center;
+}
+
+/* Credits panel enhanced visuals */
+/* Credits panel: balanced two-column cards that stack on small screens */
+#credits-content .ai-status-card {
+    /* Use a horizontal layout on wide viewports so the numeric/status column doesn't get crushed.
+       On small screens the media query below will stack them vertically for readability. */
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(180deg, rgba(56,189,248,0.03), rgba(14,165,233,0.01));
+    border: 1px solid rgba(59,130,246,0.08);
+    padding: 14px;
+    border-radius: 12px;
+    gap: 12px;
+    min-height: 80px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
+
+/* make the inner content layout predictable: left (meta) and right (numbers) columns */
+#credits-content .ai-status-card > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+}
+
+/* Ensure left column text wraps and right column stays compact */
+#credits-content .ai-status-card > div > :first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+/* Numeric / status column */
+#credits-content .ai-status-card > div > :last-child {
+    flex: 0 0 auto;
+    text-align: right;
+    min-width: 120px; /* give numeric/status column more room so values don't wrap/collapse */
+}
+
+/* Responsive behavior: stack cards vertically on narrow viewports */
+/* Stack credit detail cards vertically so each can have its own height; use two columns only on wide viewports */
+#credits-content > div {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); /* responsive columns that expand instead of staying crushed */
+    gap: 12px;
+    align-items: start;
+}
+
+/* On large screens, allow a two-column layout for denser presentation */
+@media (min-width: 1200px) {
+    /* on very wide screens keep a stable two-column layout but let the default auto-fit handle mid sizes */
+    #credits-content > div {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Preserve single-column layout for small screens and ensure cards can size naturally */
+@media (max-width: 640px) {
+    #credits-content > div {
+        grid-template-columns: 1fr;
+    }
+    #credits-content .ai-status-card {
+        min-height: auto;
+    }
+}
+
+/* Tweak typography for clarity */
+#credits-content .ai-status-card .ai-status-text,
+#credits-content .ai-status-card .ai-status-icon {
+    align-self: center;
+}
+#credits-content .ai-status-card .ai-status-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e6f7ff;
+}
+#credits-content .ai-status-card .ai-status-icon {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+/* Small helper for the two mini-cards inside details: ensure internal padding and spacing */
+#credits-content .ai-status-card .mini {
+    padding: 0;
+    background: transparent;
+    border: none;
+    gap: 8px;
+}
+
+/* Make the summary card stand out with a coin icon */
+#credits-content .ai-status-card .ai-status-icon {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.18), rgba(59,130,246,0.06));
+    border-radius: 10px;
+    color: #7dd3fc;
+}
+#credits-content .ai-status-card .ai-status-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+    fill: none;
+}
+
+/* Make the credits text bolder and slightly larger for quick scanning */
+#credits-content .ai-status-text {
+    color: #e6f7ff;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+/* Actions in credits area (link/claim) get clearer spacing */
+.credits-action-section {
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.02);
+    background: linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.25));
+}
+
+/* show tooltip on hover (desktop); keep it hidden by default to avoid layout shifts */
+.info-icon:hover::after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(6px);
+}
+
+/* Preserve the existing keyframes */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+@keyframes dash {
+    0% { stroke-dashoffset: 90; }
+    50% { stroke-dashoffset: 30; }
+    100% { stroke-dashoffset: 90; }
+}
+
+/* Hide the bottom footer buttons in the Create Project modal (visual removal only) */
+#create-project-modal .modal-footer {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Disable the Post button hover popup menu so it doesn't appear on hover */
+#post-menu-container .group-hover\:flex,
+#post-menu-container .group-hover\:flex.show {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}

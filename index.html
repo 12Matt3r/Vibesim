@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VibeSim AI - Coding Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <div class="h-screen flex flex-col overflow-hidden bg-[#0d0d0d] text-[#e0e0e0]">
+        <!-- Title Bar -->
+        <div class="title-bar flex items-center justify-between px-3 h-10 border-b border-[#262626] bg-[#0d0d0d]">
+            <div class="flex items-center gap-4">
+                <div class="title-menu" id="file-menu">
+                    <button id="file-menu-btn" class="hover:text-white transition-colors">VibeSim ▾</button>
+                    <div class="file-submenu" id="file-submenu" role="menu" aria-hidden="true">
+                        <button class="submenu-item" id="reset-workspace">New Project</button>
+                        <button class="submenu-item" id="upload-files">Import Files</button>
+                        <button class="submenu-item" id="export-zip">Download ZIP</button>
+                    </div>
+                </div>
+                <div id="project-name" class="text-[#888] text-xs font-bold uppercase tracking-widest hover:text-white transition-colors">project-vibe-1</div>
+                <div class="flex items-center gap-2 ml-4">
+                    <button id="save-project-btn" class="px-2 py-1 bg-[#1a1a1a] hover:bg-[#262626] border border-[#333] rounded text-[#888] hover:text-[#4ade80] transition-all flex items-center gap-1.5 text-[10px]" title="Save to Cloud">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                        <span>Save</span>
+                    </button>
+                    <div class="relative group" id="post-menu-container">
+                        <button id="post-project-btn" class="p-1 hover:bg-[#1a1a1a] rounded text-[#888] hover:text-[#3b82f6] transition-all flex items-center gap-1.5 text-[10px]" title="Share Project">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                            <span>Post</span>
+                        </button>
+                        <div class="hidden group-hover:flex absolute top-full left-0 mt-1 flex-col bg-[#1a1a1a] border border-[#333] rounded-lg shadow-xl z-50 min-width-[160px] p-1">
+                            <button class="text-[10px] text-left px-3 py-2 hover:bg-[#333] rounded whitespace-nowrap" id="post-to-websim-btn">Post to Websim!</button>
+                            <button class="text-[10px] text-left px-3 py-2 hover:bg-[#333] rounded whitespace-nowrap" id="post-to-feed-btn">Post to Community</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="window-controls flex gap-2">
+                <div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+                <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+            </div>
+        </div>
+
+        <!-- Layout Container -->
+        <div class="flex-1 flex overflow-hidden">
+            
+            <!-- Main Content Area -->
+            <div class="flex-1 flex flex-col min-w-0">
+                <!-- Top Tabs (Preview / Code) -->
+                <div class="view-tabs flex bg-[#0d0d0d] border-b border-[#262626] h-10">
+                    <button class="view-tab active" data-view="preview">Preview</button>
+                    <button class="view-tab" data-view="editor">Editor</button>
+                </div>
+
+                <div id="main-view-container" class="flex-1 relative overflow-hidden">
+                    <!-- Preview View -->
+                    <div id="preview-view" class="absolute inset-0 flex flex-col">
+                        <div class="preview-address-bar flex items-center gap-2 px-3 py-1 bg-[#1a1a1a] border-b border-[#262626] text-[11px]">
+                            <div class="flex gap-1.5 mr-2">
+                                <button id="reload-preview" title="Reload"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg></button>
+                            </div>
+                            <div class="flex-1 bg-[#0d0d0d] rounded px-2 py-0.5 text-[#888] border border-[#333]">localhost:3000</div>
+                            <button id="popout-preview" class="hover:text-white p-1 rounded hover:bg-[#333] transition-colors"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg></button>
+                            <button id="fullscreen-preview" title="Fullscreen preview" class="hover:text-white p-1 rounded hover:bg-[#333] transition-colors ml-1"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14H5v4a2 2 0 002 2h4v-2H7v-4zM5 10h2V6h4V4H7a2 2 0 00-2 2v4zm14 4v4a2 2 0 01-2 2h-4v-2h4v-4h2zM14 4v2h4v4h2V6a2 2 0 00-2-2h-4z"/></svg></button>
+                        </div>
+                        <iframe id="preview-iframe" class="flex-1 w-full bg-white border-none"></iframe>
+                    </div>
+
+                    <!-- Editor View (Hidden by default) -->
+                    <div id="editor-view" class="absolute inset-0 flex flex-col hidden">
+                        <div class="tabs-bar" id="tabs-bar"></div>
+                        <div class="breadcrumb" id="breadcrumb"></div>
+                        <!-- Monaco editor container -->
+                        <div id="monaco-container" class="flex-1" style="position:relative;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar Resizer -->
+            <div class="resizer" id="main-resizer"></div>
+
+            <!-- Right Sidebar (Activity + Content) -->
+            <div id="right-sidebar" class="w-[400px] flex flex-row border-l border-[#262626] bg-[#0d0d0d]">
+                
+                <!-- Activity Bar (Icons) -->
+                <div class="activity-bar w-12 flex flex-col items-center py-4 gap-4 border-r border-[#262626]">
+                    <button class="activity-item active" data-panel="chat" title="AI Chat">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </button>
+                    <button class="activity-item" data-panel="explorer" title="Explorer">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    </button>
+                    <button class="activity-item" data-panel="search" title="Search">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </button>
+                    <button class="activity-item" data-panel="credits" title="Credits">
+                        <!-- Clean dollar-in-circle icon -->
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" role="img">
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" fill="none"/>
+                          <path d="M12 7v10" stroke="currentColor" stroke-width="1.6" />
+                          <path d="M15.25 8.75c-.6.5-1.75.9-3.25.9-1.5 0-2.65.4-3.25.9" stroke="currentColor" stroke-width="1.6" fill="none"/>
+                          <path d="M8.75 15.25c.6-.5 1.75-.9 3.25-.9 1.5 0 2.65-.4 3.25-.9" stroke="currentColor" stroke-width="1.6" fill="none"/>
+                        </svg>
+                    </button>
+
+                    <!-- Settings Panel Icon -->
+                    <button class="activity-item" data-panel="settings" title="Settings">
+                        <!-- Cleaner gear icon for Settings -->
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" role="img">
+                          <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
+                          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09c.7 0 1.28-.4 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06c.45.45 1.15.6 1.82.33.6-.25 1-1 1-1.51V3a2 2 0 0 1 4 0v.09c0 .6.4 1.28 1 1.51.67.27 1.37.12 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06c-.45.45-.6 1.15-.33 1.82.25.6 1 1 1.51 1H21a2 2 0 0 1 0 4h-.09c-.6 0-1.28.4-1.51 1z" />
+                        </svg>
+                    </button>
+
+                    <div class="mt-auto">
+                        <button id="toggle-sidebar" class="activity-item" title="Collapse Sidebar">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Panel Contents -->
+                <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+                    
+                    <!-- AI Chat Panel -->
+                    <div id="chat-panel" class="panel flex flex-col h-full active">
+                        <div class="p-4 border-b border-[#262626] flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-[#888]">AI Vibe Assistant</span>
+                            <button id="clear-chat" class="p-1 hover:bg-[#1a1a1a] rounded transition-colors" title="Clear chat" aria-label="Clear chat">
+                                <svg class="w-4 h-4 inline-block align-middle" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                <span style="font-size:11px;color:#888;margin-left:8px;vertical-align:middle;">Clear</span>
+                            </button>
+                        </div>
+                        <div class="task-panel border-b border-[#262626] bg-[#111] hidden" id="task-panel">
+                            <div class="px-4 py-2 text-[10px] font-bold text-[#555] uppercase">Plan</div>
+                            <div id="task-list" class="px-4 pb-3"></div>
+                        </div>
+                        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+                            <div class="message assistant-vibe">
+                                <div class="message-content">What's the vibe today? I'm ready to build your project.</div>
+                            </div>
+                        </div>
+                        <div class="chat-input-area p-4 bg-[#0d0d0d] border-t border-[#262626]">
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center justify-between px-1">
+                                    <div class="flex items-center gap-2">
+                                        <!-- Custom Model Dropdown -->
+                                        <div class="custom-dropdown" id="model-dropdown">
+                                            <div class="dropdown-trigger" id="model-trigger" title="Select AI Model">
+                                                <span id="selected-model-name">GLM 4.7</span>
+                                                <span class="dropdown-arrow">▾</span>
+                                            </div>
+                                            <div class="dropdown-menu" id="model-menu">
+                                                <!-- Populated dynamically from /models -->
+                                            </div>
+                                        </div>
+
+                                        <!-- Abilities Dropdown -->
+                                        <div class="custom-dropdown" id="abilities-dropdown">
+                                            <div class="dropdown-trigger" id="abilities-trigger" title="Enable AI Abilities">
+                                                <span>Abilities</span>
+                                                <span class="dropdown-arrow">▾</span>
+                                            </div>
+                                            <div class="dropdown-menu" id="abilities-menu">
+                                                <div class="dropdown-checkbox-option" data-ability="websim_services" style="flex-direction:column;align-items:flex-start;gap:6px">
+                                                    <div style="display:flex;align-items:center;gap:8px;width:100%">
+                                                        <input type="checkbox" id="ability-websim">
+                                                        <label for="ability-websim" style="font-weight:600">Websim Services</label>
+                                                    </div>
+                                                    <div style="font-size:11px;color:#9aa6b2;line-height:1.2;max-width:260px">
+                                                        Allows use of Websim features like AI, clips, comments, multiplayer and database. Note: comments, multiplayer and database are simulated in the preview for security and will behave fully once exported to Websim.
+                                                    </div>
+                                                </div>
+                                                <div class="dropdown-checkbox-option" data-ability="ads" style="flex-direction:column;align-items:flex-start;gap:6px">
+                                                    <div style="display:flex;align-items:center;gap:8px;width:100%">
+                                                        <input type="checkbox" id="ability-ads">
+                                                        <label for="ability-ads" style="font-weight:600">Ads (WebSimAdsSDK)</label>
+                                                    </div>
+                                                    <div style="font-size:11px;color:#9aa6b2;line-height:1.2;max-width:260px">
+                                                        Enable in-game ads to earn Websim Credits and monetize; more info, earning methods and rules at <a href="https://websim.com/@CoponStackos/websim-ads-platform-advertise-your-games" target="_blank" rel="noopener noreferrer" style="color:#8fbce6;text-decoration:underline">https://websim.com/@CoponStackos/websim-ads-platform-advertise-your-games</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <label class="flex items-center gap-2 text-[10px] text-[#888] cursor-pointer hover:text-white transition-colors">
+                                        <input type="checkbox" id="agentic-mode" class="accent-blue-500"> Agentic Mode
+                                    </label>
+                                </div>
+                                <div class="relative">
+                                    <textarea id="chat-input" class="w-full bg-[#1a1a1a] border border-[#262626] rounded-xl px-4 py-3 pr-16 text-sm focus:outline-none focus:border-[#3b82f6] transition-all resize-none shadow-inner" rows="3" placeholder="Describe what you want to build..."></textarea>
+                                    <button id="send-btn" class="absolute bottom-3 right-3 bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:bg-[#333]">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <button id="abort-btn" class="w-full mt-2 py-2 bg-red-500/10 text-red-500 text-[10px] font-bold uppercase rounded-lg border border-red-500/20 hover:bg-red-500/20 transition-all hidden">Stop Generation</button>
+                        </div>
+                    </div>
+
+                    <!-- Explorer Panel -->
+                    <div id="explorer-panel" class="panel flex flex-col h-full">
+                        <div class="p-4 border-b border-[#262626] flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-[#888]">Files</span>
+                            <div class="flex gap-2 items-center">
+                                <button id="import-files-btn" class="p-1 hover:bg-[#1a1a1a] rounded transition-colors text-[12px]" title="Import Files">Import Files</button>
+                                <button id="new-file-btn" class="p-1 hover:bg-[#1a1a1a] rounded transition-colors" title="New File">+</button>
+                                <button id="new-folder-btn" class="p-1 hover:bg-[#1a1a1a] rounded transition-colors" title="New Folder">📁</button>
+                                <input id="import-files-input" type="file" multiple style="display:none" />
+                            </div>
+                        </div>
+                        <div id="file-tree" class="flex-1 overflow-y-auto pt-2"></div>
+                    </div>
+
+                    <!-- Search Panel -->
+                    <div id="search-panel" class="panel flex flex-col h-full">
+                        <div class="p-4 border-b border-[#262626]">
+                            <span class="text-xs font-bold uppercase tracking-wider text-[#888]">Search & Replace</span>
+                        </div>
+                        <div class="p-4 space-y-3">
+                            <input type="text" id="search-input" class="w-full bg-[#1a1a1a] border border-[#262626] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#444]" placeholder="Search text...">
+                            <input type="text" id="replace-input" class="w-full bg-[#1a1a1a] border border-[#262626] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#444]" placeholder="Replace with...">
+                            <button id="replace-all-btn" class="w-full py-2 bg-[#1a1a1a] hover:bg-[#262626] rounded-lg text-xs font-bold transition-colors">Replace All</button>
+                        </div>
+                        <div id="search-results" class="flex-1 overflow-y-auto p-2"></div>
+                    </div>
+
+                    <!-- Credits Panel -->
+                    <div id="credits-panel" class="panel flex flex-col h-full">
+                        <div class="p-4 border-b border-[#262626] flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-[#888]">Credits & Usage</span>
+                            <button id="refresh-credits" class="p-1 hover:bg-[#1a1a1a] rounded transition-colors" title="Refresh">⟳</button>
+                        </div>
+                        <div id="credits-content" class="flex-1 overflow-y-auto p-4 space-y-3">
+                            <!-- dynamic content -->
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <div style="font-size:12px;color:#9aa6b2;margin-left:auto">10 credits = 1 AI request</div>
+                            </div>
+                            <div class="ai-status-card" id="credits-summary-card" style="display:none;margin-top:8px">
+                                <div class="ai-status-icon"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a5 5 0 00-5 5v.5A6.5 6.5 0 006.5 14H12v6l4-2 4 2V9a7 7 0 00-7-7z"/></svg></div>
+                                <div class="ai-status-text" id="credits-summary-text"></div>
+                            </div>
+                            <div id="credits-details" style="font-size:13px;color:#9aa6b2;white-space:pre-wrap"></div>
+                            <div id="credits-history" style="font-size:13px;color:#cbd5e1"></div>
+                        </div>
+                    </div>
+
+                    <!-- Settings Panel -->
+                    <div id="settings-panel" class="panel flex flex-col h-full">
+                        <div class="p-4 border-b border-[#262626] flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-[#888]">Settings</span>
+                        </div>
+                        <div style="padding:16px; font-size:13px; color:#cbd5e1">
+                            <div style="margin-bottom:12px">
+                                <label style="display:flex;align-items:center;gap:10px">
+                                    <input type="checkbox" id="consent-toggle" />
+                                    <span>Consent to privacy policy & automatic linking (required for credits & cloud AI)</span>
+                                </label>
+                            </div>
+
+                            <div id="settings-note" style="font-size:12px;color:#9aa6b2;line-height:1.4">
+                                Consent to be able to use free GLM models and be able to buy AI credits with tips.
+                            </div>
+
+                            <div style="margin-top:16px;display:flex;gap:8px">
+                                <button id="save-consent" class="btn-primary">Save</button>
+                                <button id="reopen-privacy" class="btn-secondary">Read Policy</button>
+                            </div>
+
+                            <div id="settings-linked" style="margin-top:12px;font-size:13px;color:#8fbce6"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Snackbar -->
+        <div id="vibesim-snackbar" class="snackbar"></div>
+
+        <!-- Custom Prompt/Alert Modal -->
+        <div id="vibesim-dialog" class="modal-overlay">
+            <div class="project-modal" style="max-width: 400px; border-radius: 12px;">
+                <div class="modal-header" id="dialog-title">Message</div>
+                <div style="padding: 20px; color: #cbd5e1; font-size: 14px;" id="dialog-body"></div>
+                <div id="dialog-input-container" style="padding: 0 20px 20px 20px;" class="hidden">
+                    <input type="text" id="dialog-input" class="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" id="dialog-cancel" style="border-radius: 8px;">Cancel</button>
+                    <button class="btn-primary" id="dialog-confirm" style="border-radius: 8px;">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asset Preview Tooltip -->
+        <div id="asset-preview-popup" class="asset-preview-popup"></div>
+
+        <!-- Status Bar -->
+        <div class="h-6 bg-[#0d0d0d] border-t border-[#262626] flex items-center justify-between px-3 text-[10px] text-[#555]">
+            <div class="flex items-center gap-4">
+                <span id="status-sync" class="flex items-center gap-1.5"><div class="w-1.5 h-1.5 rounded-full bg-green-500"></div> Synced</span>
+                <span id="status-lang">TypeScript</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="status-position">Ln 1, Col 1</span>
+                <span>UTF-8</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monaco loader -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.39.0/min/vs/loader.js"></script>
+    <!-- Load JSZip UMD globally (provides window.JSZip) so the app can reliably use JSZip -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Import map for ESM dependencies (load DOMPurify and html2canvas as ESM to avoid AMD/define conflicts with Monaco) -->
+    <script type="importmap">
+    {
+      "imports": {
+        "dompurify": "https://esm.sh/dompurify@3.0.6?dev",
+        "html2canvas": "https://esm.sh/html2canvas@1.4.1?dev"
+      }
+    }
+    </script>
+    <!-- JSZip is also dynamically handled by the app (ensureJSZip) to provide fallbacks, but prefer the local global above -->
+    <script type="module" src="script.js"></script>
+</body>
+</html>
