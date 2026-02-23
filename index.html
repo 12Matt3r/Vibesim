@@ -280,6 +280,40 @@
                             </div>
 
                             <div id="settings-linked" style="margin-top:12px;font-size:13px;color:#8fbce6"></div>
+
+                            <!-- Integrations Section -->
+                            <div style="margin-top:24px;border-top:1px solid #262626;padding-top:16px;">
+                                <div style="font-weight:700;margin-bottom:12px;color:#e6eef8;">Integrations</div>
+
+                                <div style="margin-bottom:16px;">
+                                    <div style="font-size:11px;font-weight:700;color:#9aa6b2;margin-bottom:4px;text-transform:uppercase;">Custom AI API</div>
+                                    <div style="margin-bottom:8px">
+                                        <input type="text" id="custom-api-endpoint" placeholder="API Endpoint (e.g. https://api.openai.com/v1/chat/completions)" style="width:100%;background:#0b0b0b;border:1px solid #333;padding:8px;border-radius:6px;color:#e6eef8;font-size:12px;">
+                                    </div>
+                                    <div>
+                                        <input type="password" id="custom-api-key" placeholder="API Key" style="width:100%;background:#0b0b0b;border:1px solid #333;padding:8px;border-radius:6px;color:#e6eef8;font-size:12px;">
+                                    </div>
+                                </div>
+
+                                <div style="margin-bottom:16px;">
+                                    <div style="font-size:11px;font-weight:700;color:#9aa6b2;margin-bottom:4px;text-transform:uppercase;">GitHub</div>
+                                    <div style="margin-bottom:8px">
+                                        <input type="password" id="github-token" placeholder="Personal Access Token (Repo Scope)" style="width:100%;background:#0b0b0b;border:1px solid #333;padding:8px;border-radius:6px;color:#e6eef8;font-size:12px;">
+                                    </div>
+                                    <div style="display:flex;gap:8px;">
+                                        <input type="text" id="github-owner" placeholder="Owner" style="flex:1;background:#0b0b0b;border:1px solid #333;padding:8px;border-radius:6px;color:#e6eef8;font-size:12px;">
+                                        <input type="text" id="github-repo" placeholder="Repo Name" style="flex:1;background:#0b0b0b;border:1px solid #333;padding:8px;border-radius:6px;color:#e6eef8;font-size:12px;">
+                                    </div>
+                                </div>
+
+                                <div style="display:flex;flex-direction:column;gap:8px;">
+                                    <button id="save-integrations" class="btn-primary" style="width:100%;">Save Integrations</button>
+                                    <div style="display:flex;gap:8px;">
+                                        <button id="push-github" class="btn-secondary" style="flex:1;">Push to GitHub</button>
+                                        <button id="pull-github" class="btn-secondary" style="flex:1;">Pull from GitHub</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
