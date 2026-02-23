@@ -1053,6 +1053,15 @@ async function updateBalanceDisplay() {
 }
 
 function setupEventListeners() {
+    // Console Clear
+    const clearConsoleBtn = document.getElementById('clear-console');
+    if (clearConsoleBtn) {
+        clearConsoleBtn.addEventListener('click', () => {
+            const container = document.getElementById('console-logs');
+            if (container) container.innerHTML = '<div class="text-[#666]">Console cleared.</div>';
+        });
+    }
+
     // View tabs (Preview / Editor)
     document.querySelectorAll('.view-tab').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -5373,6 +5382,25 @@ function addMessage(role, content) {
     try { saveProjectsToStorage(); } catch (e) { console.warn('Autosave failed after chat message', e); }
 }
 
+function logToConsole(type, message) {
+    const container = document.getElementById('console-logs');
+    if (!container) return;
+    const div = document.createElement('div');
+    div.className = `console-msg ${type} border-b border-[#222] pb-1`;
+    div.style.whiteSpace = 'pre-wrap';
+    div.style.wordBreak = 'break-word';
+
+    let color = '#ccc';
+    if (type === 'warn') color = '#fbbf24';
+    if (type === 'error') color = '#f87171';
+    if (type === 'info') color = '#60a5fa';
+
+    div.style.color = color;
+    div.textContent = `[${type.toUpperCase()}] ${message}`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
 // Render a prettier task list UI into the existing task-panel element
 function renderTaskList() {
     const panel = document.getElementById('task-panel');
@@ -6335,6 +6363,31 @@ async function updatePreview() {
     window.__vibesim_asset_map = ${JSON.stringify(assetUrlMap)};
   } catch (e) { window.__vibesim_asset_map = {}; }
 
+  // Console Interception
+  (function() {
+      const originalLog = console.log;
+      const originalWarn = console.warn;
+      const originalError = console.error;
+      const originalInfo = console.info;
+
+      function sendLog(type, args) {
+          try {
+              const message = args.map(arg => {
+                  if (typeof arg === 'object') {
+                      try { return JSON.stringify(arg); } catch(e) { return String(arg); }
+                  }
+                  return String(arg);
+              }).join(' ');
+              parent.postMessage({ __vibesim_console: true, type, message }, '*');
+          } catch(e) {}
+      }
+
+      console.log = function(...args) { sendLog('log', args); originalLog.apply(console, args); };
+      console.warn = function(...args) { sendLog('warn', args); originalWarn.apply(console, args); };
+      console.error = function(...args) { sendLog('error', args); originalError.apply(console, args); };
+      console.info = function(...args) { sendLog('info', args); originalInfo.apply(console, args); };
+  })();
+
   // Enhanced resolver inside the preview iframe
   function resolveAssetPath(p) {
     if (!p || typeof p !== 'string') return p;
@@ -6690,6 +6743,12 @@ async function updatePreview() {
 /* Handle messages from iframe about runtime errors */
 function handleIframeMessage(e) {
     const raw = e && e.data;
+
+    // Handle console messages
+    if (raw && raw.__vibesim_console) {
+        logToConsole(raw.type, raw.message);
+        return;
+    }
 
     // If the message indicates a blocked external resource, show a small prompt to the user.
     if (raw && raw.__vibesim_resource_blocked) {
