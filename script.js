@@ -606,12 +606,12 @@ async function init() {
                 cancelText: 'Close'
             });
             // Intentionally throw to crash/stop further initialization as requested
-            throw new Error('Not logged into websim impersonating a WebsimSocket error');
+            // throw new Error('Not logged into websim impersonating a WebsimSocket error');
         }
     } catch (e) {
         // If checkLoginStatus threw or returned false, we stop initialization and surface the error
         console.error('Login check failed or user is anonymous:', e);
-        throw e;
+        // throw e;
     }
 
     // If the user previously requested deletion, enforce a lockout message for 48 hours from request time.
@@ -1059,6 +1059,23 @@ function setupEventListeners() {
         clearConsoleBtn.addEventListener('click', () => {
             const container = document.getElementById('console-logs');
             if (container) container.innerHTML = '<div class="text-[#666]">Console cleared.</div>';
+        });
+    }
+
+    // Console Input
+    const consoleInput = document.getElementById('console-input');
+    if (consoleInput) {
+        consoleInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const code = consoleInput.value;
+                if (!code.trim()) return;
+
+                logToConsole('command', '> ' + code);
+                if (elements.previewIframe && elements.previewIframe.contentWindow) {
+                    elements.previewIframe.contentWindow.postMessage({ __vibesim_exec: true, code }, '*');
+                }
+                consoleInput.value = '';
+            }
         });
     }
 
@@ -5394,9 +5411,15 @@ function logToConsole(type, message) {
     if (type === 'warn') color = '#fbbf24';
     if (type === 'error') color = '#f87171';
     if (type === 'info') color = '#60a5fa';
+    if (type === 'command') color = '#9ca3af';
 
     div.style.color = color;
-    div.textContent = `[${type.toUpperCase()}] ${message}`;
+    if (type === 'command') {
+        div.textContent = message;
+        div.style.fontStyle = 'italic';
+    } else {
+        div.textContent = `[${type.toUpperCase()}] ${message}`;
+    }
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
 }
@@ -6386,6 +6409,17 @@ async function updatePreview() {
       console.warn = function(...args) { sendLog('warn', args); originalWarn.apply(console, args); };
       console.error = function(...args) { sendLog('error', args); originalError.apply(console, args); };
       console.info = function(...args) { sendLog('info', args); originalInfo.apply(console, args); };
+
+      window.addEventListener('message', function(e) {
+          if (e.data && e.data.__vibesim_exec) {
+              try {
+                  const res = eval(e.data.code);
+                  console.log(res);
+              } catch (err) {
+                  console.error(err);
+              }
+          }
+      });
   })();
 
   // Enhanced resolver inside the preview iframe
