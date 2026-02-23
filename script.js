@@ -443,7 +443,13 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,-apple-system}
     _previewPaused: false,
     communityPosts: [],
     currentViewingPost: null,
-    externalResourceAllowances: new Set()
+    externalResourceAllowances: new Set(),
+    // Integrations
+    customApiEndpoint: '',
+    customApiKey: '',
+    githubToken: '',
+    githubOwner: '',
+    githubRepo: ''
 };
 
 /* DOM Refs — Monaco replaces textarea/editor-highlight */
@@ -720,6 +726,13 @@ async function init() {
 
     // Restore prompterId if exists
     state.prompterId = localStorage.getItem('vibesim_prompter_id') || null;
+
+    // Restore Integrations
+    state.customApiEndpoint = localStorage.getItem('vibesim_custom_endpoint') || '';
+    state.customApiKey = localStorage.getItem('vibesim_custom_key') || '';
+    state.githubToken = localStorage.getItem('vibesim_github_token') || '';
+    state.githubOwner = localStorage.getItem('vibesim_github_owner') || '';
+    state.githubRepo = localStorage.getItem('vibesim_github_repo') || '';
 
     if (state.consent && !state.prompterId) {
         // Try auto-linking once on load if consented but no ID
@@ -1569,6 +1582,38 @@ function setupEventListeners() {
             }
         });
     }
+
+    // Integrations Listeners (Direct)
+    const saveIntBtn = document.getElementById('save-integrations');
+    if (saveIntBtn) {
+        saveIntBtn.addEventListener('click', () => {
+            const customEnd = document.getElementById('custom-api-endpoint');
+            const customKey = document.getElementById('custom-api-key');
+            const ghToken = document.getElementById('github-token');
+            const ghOwner = document.getElementById('github-owner');
+            const ghRepo = document.getElementById('github-repo');
+
+            state.customApiEndpoint = customEnd ? customEnd.value.trim() : '';
+            state.customApiKey = customKey ? customKey.value.trim() : '';
+            state.githubToken = ghToken ? ghToken.value.trim() : '';
+            state.githubOwner = ghOwner ? ghOwner.value.trim() : '';
+            state.githubRepo = ghRepo ? ghRepo.value.trim() : '';
+
+            localStorage.setItem('vibesim_custom_endpoint', state.customApiEndpoint);
+            localStorage.setItem('vibesim_custom_key', state.customApiKey);
+            localStorage.setItem('vibesim_github_token', state.githubToken);
+            localStorage.setItem('vibesim_github_owner', state.githubOwner);
+            localStorage.setItem('vibesim_github_repo', state.githubRepo);
+
+            showSnackbar('Integrations saved!');
+        });
+    }
+
+    const pushBtn = document.getElementById('push-github');
+    if (pushBtn) pushBtn.addEventListener('click', pushToGitHub);
+
+    const pullBtn = document.getElementById('pull-github');
+    if (pullBtn) pullBtn.addEventListener('click', pullFromGitHub);
 }
 
 /**
@@ -7229,6 +7274,19 @@ function renderSettingsPanel() {
         // Show linked account only (if present)
         if (settingsLinked) settingsLinked.textContent = state.prompterId ? `Linked as: ${escapeHtml(state.prompterId)}` : '';
 
+        // Populate Integrations inputs
+        const customEnd = document.getElementById('custom-api-endpoint');
+        const customKey = document.getElementById('custom-api-key');
+        const ghToken = document.getElementById('github-token');
+        const ghOwner = document.getElementById('github-owner');
+        const ghRepo = document.getElementById('github-repo');
+
+        if (customEnd) customEnd.value = state.customApiEndpoint || '';
+        if (customKey) customKey.value = state.customApiKey || '';
+        if (ghToken) ghToken.value = state.githubToken || '';
+        if (ghOwner) ghOwner.value = state.githubOwner || '';
+        if (ghRepo) ghRepo.value = state.githubRepo || '';
+
         // Hide the top-level "Save" consent button (we auto-consent)
         const saveBtn = document.getElementById('save-consent');
         if (saveBtn) saveBtn.style.display = 'none';
@@ -7640,6 +7698,253 @@ function handleReplaceAll() {
 
 document.getElementById('search-input')?.addEventListener('input', updateSearchResults);
 window.updateSearchResults = updateSearchResults;
+
+// GitHub Integration Helpers
+async function pushToGitHub() {
+    if (!state.githubToken || !state.githubOwner || !state.githubRepo) {
+        alert('Please configure GitHub settings first.');
+        return;
+    }
+
+    const btn = document.getElementById('push-github');
+    const originalText = btn ? btn.textContent : 'Push to GitHub';
+    if (btn) { btn.disabled = true; btn.textContent = 'Pushing...'; }
+
+    try {
+        addMessage('assistant-vibe', 'Starting push to GitHub...');
+
+        // 1. Get current commit SHA of main/master
+        const repoUrl = `https://api.github.com/repos/${state.githubOwner}/${state.githubRepo}`;
+        const headers = {
+            'Authorization': `token ${state.githubToken}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+        };
+
+        let defaultBranch = 'main';
+        let baseSha = null;
+
+        try {
+            const repoRes = await fetch(repoUrl, { headers });
+            if (!repoRes.ok) throw new Error('Failed to fetch repo info');
+            const repoData = await repoRes.json();
+            defaultBranch = repoData.default_branch;
+        } catch (e) {
+            console.warn('Could not determine default branch, assuming main', e);
+        }
+
+        const refRes = await fetch(`${repoUrl}/git/ref/heads/${defaultBranch}`, { headers });
+        if (refRes.ok) {
+            const refData = await refRes.json();
+            baseSha = refData.object.sha;
+        }
+
+        // 2. Create blobs for each file
+        const treeItems = [];
+        for (const [path, file] of Object.entries(state.files)) {
+            // Skip binary blobs if we can't upload them easily via text API (unless base64 encoded)
+            let content = file.content;
+            let encoding = 'utf-8';
+
+            if (file.language === 'binary' || (file.blobUrl && !file.content)) {
+                // If we have a blobUrl but no content, try to fetch it as blob and convert to base64
+                if (file.blobUrl) {
+                    try {
+                        const blobRes = await fetch(file.blobUrl);
+                        const blob = await blobRes.blob();
+                        const reader = new FileReader();
+                        content = await new Promise((resolve) => {
+                            reader.onloadend = () => resolve(reader.result.split(',')[1]); // remove data: prefix
+                            reader.readAsDataURL(blob);
+                        });
+                        encoding = 'base64';
+                    } catch (e) {
+                        console.warn(`Skipping binary file ${path} due to fetch error`, e);
+                        continue;
+                    }
+                } else if (typeof content === 'string' && content.startsWith('data:')) {
+                     content = content.split(',')[1];
+                     encoding = 'base64';
+                } else {
+                    continue; // Skip unknown binary types
+                }
+            }
+
+            if (!content) continue;
+
+            const blobRes = await fetch(`${repoUrl}/git/blobs`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ content, encoding })
+            });
+
+            if (!blobRes.ok) {
+                console.warn(`Failed to upload blob for ${path}`);
+                continue;
+            }
+            const blobData = await blobRes.json();
+            treeItems.push({
+                path: path,
+                mode: '100644',
+                type: 'blob',
+                sha: blobData.sha
+            });
+        }
+
+        if (treeItems.length === 0) {
+            throw new Error('No files to push.');
+        }
+
+        // 3. Create Tree
+        const treePayload = { tree: treeItems };
+        if (baseSha) treePayload.base_tree = baseSha;
+
+        const treeRes = await fetch(`${repoUrl}/git/trees`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(treePayload)
+        });
+        if (!treeRes.ok) throw new Error('Failed to create tree');
+        const treeData = await treeRes.json();
+
+        // 4. Create Commit
+        const commitRes = await fetch(`${repoUrl}/git/commits`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                message: 'Update from VibeSim',
+                tree: treeData.sha,
+                parents: baseSha ? [baseSha] : []
+            })
+        });
+        if (!commitRes.ok) throw new Error('Failed to create commit');
+        const commitData = await commitRes.json();
+
+        // 5. Update Ref
+        const updateRes = await fetch(`${repoUrl}/git/refs/heads/${defaultBranch}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ sha: commitData.sha, force: false }) // force: false to be safe
+        });
+
+        if (!updateRes.ok) throw new Error('Failed to update ref');
+
+        addMessage('assistant-vibe', `Successfully pushed to ${state.githubOwner}/${state.githubRepo} on branch ${defaultBranch}.`);
+        showSnackbar('Pushed to GitHub successfully!');
+
+    } catch (e) {
+        console.error('GitHub Push Error:', e);
+        addMessage('assistant-vibe', `Push failed: ${e.message}`);
+        alert(`Push failed: ${e.message}`);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = originalText; }
+    }
+}
+
+async function pullFromGitHub() {
+    if (!state.githubToken || !state.githubOwner || !state.githubRepo) {
+        alert('Please configure GitHub settings first.');
+        return;
+    }
+
+    const btn = document.getElementById('pull-github');
+    const originalText = btn ? btn.textContent : 'Pull from GitHub';
+    if (btn) { btn.disabled = true; btn.textContent = 'Pulling...'; }
+
+    try {
+        addMessage('assistant-vibe', 'Starting pull from GitHub...');
+
+        const repoUrl = `https://api.github.com/repos/${state.githubOwner}/${state.githubRepo}`;
+        const headers = {
+            'Authorization': `token ${state.githubToken}`,
+            'Accept': 'application/vnd.github.v3+json'
+        };
+
+        // Get default branch
+        let defaultBranch = 'main';
+        try {
+            const repoRes = await fetch(repoUrl, { headers });
+            if (!repoRes.ok) throw new Error('Failed to fetch repo info');
+            const repoData = await repoRes.json();
+            defaultBranch = repoData.default_branch;
+        } catch (e) {
+            console.warn('Could not determine default branch, assuming main', e);
+        }
+
+        // Get Tree (recursive)
+        const treeRes = await fetch(`${repoUrl}/git/trees/${defaultBranch}?recursive=1`, { headers });
+        if (!treeRes.ok) throw new Error('Failed to fetch file tree');
+        const treeData = await treeRes.json();
+
+        if (treeData.truncated) {
+            addMessage('assistant-vibe', 'Warning: Repo is too large, some files may be missing.');
+        }
+
+        const filesToFetch = treeData.tree.filter(item => item.type === 'blob');
+        const newFiles = {};
+
+        // Fetch blobs (limited concurrency)
+        let processed = 0;
+        const total = filesToFetch.length;
+
+        // Simple sequential fetch for reliability in this demo (could be parallelized)
+        for (const item of filesToFetch) {
+            const blobRes = await fetch(item.url, { headers }); // item.url is the API url for the blob
+            if (blobRes.ok) {
+                const blobData = await blobRes.json();
+                // blobData.content is base64
+                let content = atob(blobData.content.replace(/\n/g, ''));
+                // Check if binary (simple heuristic or based on extension)
+                const isBinary = /[\x00-\x08\x0E-\x1F]/.test(content);
+
+                if (isBinary) {
+                     // Keep as data URL if possible or just raw base64 wrapped
+                     const ext = item.path.split('.').pop();
+                     const mime = getMime(item.path);
+                     content = `data:${mime};base64,${blobData.content.replace(/\n/g, '')}`;
+                     newFiles[item.path] = { content: content, language: 'binary' };
+                } else {
+                     try {
+                        // Decode UTF-8 correctly
+                        const binaryString = atob(blobData.content.replace(/\n/g, ''));
+                        const bytes = new Uint8Array(binaryString.length);
+                        for (let i = 0; i < binaryString.length; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+                        const decoder = new TextDecoder('utf-8');
+                        content = decoder.decode(bytes);
+                     } catch(e) {}
+
+                     newFiles[item.path] = { content: content, language: getLang(item.path) };
+                }
+            }
+            processed++;
+            if (processed % 5 === 0) {
+                // Optional progress update
+            }
+        }
+
+        state.files = newFiles;
+        state.tabs = Object.keys(newFiles).slice(0, 5); // Open first few
+        state.activeTab = state.tabs[0] || null;
+
+        renderFileTree();
+        renderTabs();
+        if (state.activeTab) openFile(state.activeTab);
+        updatePreview();
+        saveProjectsToStorage();
+
+        addMessage('assistant-vibe', `Successfully pulled ${Object.keys(newFiles).length} files from GitHub.`);
+        showSnackbar('Pulled from GitHub successfully!');
+
+    } catch (e) {
+        console.error('GitHub Pull Error:', e);
+        addMessage('assistant-vibe', `Pull failed: ${e.message}`);
+        alert(`Pull failed: ${e.message}`);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = originalText; }
+    }
+}
 
 init();
 window.playProject = playProject;
