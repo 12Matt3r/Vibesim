@@ -449,7 +449,8 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,-apple-system}
     customApiKey: '',
     githubToken: '',
     githubOwner: '',
-    githubRepo: ''
+    githubRepo: '',
+    githubBranch: ''
 };
 
 /* DOM Refs — Monaco replaces textarea/editor-highlight */
@@ -733,6 +734,7 @@ async function init() {
     state.githubToken = localStorage.getItem('vibesim_github_token') || '';
     state.githubOwner = localStorage.getItem('vibesim_github_owner') || '';
     state.githubRepo = localStorage.getItem('vibesim_github_repo') || '';
+    state.githubBranch = localStorage.getItem('vibesim_github_branch') || '';
 
     if (state.consent && !state.prompterId) {
         // Try auto-linking once on load if consented but no ID
@@ -1592,18 +1594,21 @@ function setupEventListeners() {
             const ghToken = document.getElementById('github-token');
             const ghOwner = document.getElementById('github-owner');
             const ghRepo = document.getElementById('github-repo');
+            const ghBranch = document.getElementById('github-branch');
 
             state.customApiEndpoint = customEnd ? customEnd.value.trim() : '';
             state.customApiKey = customKey ? customKey.value.trim() : '';
             state.githubToken = ghToken ? ghToken.value.trim() : '';
             state.githubOwner = ghOwner ? ghOwner.value.trim() : '';
             state.githubRepo = ghRepo ? ghRepo.value.trim() : '';
+            state.githubBranch = ghBranch ? ghBranch.value.trim() : '';
 
             localStorage.setItem('vibesim_custom_endpoint', state.customApiEndpoint);
             localStorage.setItem('vibesim_custom_key', state.customApiKey);
             localStorage.setItem('vibesim_github_token', state.githubToken);
             localStorage.setItem('vibesim_github_owner', state.githubOwner);
             localStorage.setItem('vibesim_github_repo', state.githubRepo);
+            localStorage.setItem('vibesim_github_branch', state.githubBranch);
 
             showSnackbar('Integrations saved!');
         });
@@ -7280,12 +7285,14 @@ function renderSettingsPanel() {
         const ghToken = document.getElementById('github-token');
         const ghOwner = document.getElementById('github-owner');
         const ghRepo = document.getElementById('github-repo');
+        const ghBranch = document.getElementById('github-branch');
 
         if (customEnd) customEnd.value = state.customApiEndpoint || '';
         if (customKey) customKey.value = state.customApiKey || '';
         if (ghToken) ghToken.value = state.githubToken || '';
         if (ghOwner) ghOwner.value = state.githubOwner || '';
         if (ghRepo) ghRepo.value = state.githubRepo || '';
+        if (ghBranch) ghBranch.value = state.githubBranch || '';
 
         // Hide the top-level "Save" consent button (we auto-consent)
         const saveBtn = document.getElementById('save-consent');
@@ -7702,9 +7709,12 @@ window.updateSearchResults = updateSearchResults;
 // GitHub Integration Helpers
 async function pushToGitHub() {
     if (!state.githubToken || !state.githubOwner || !state.githubRepo) {
-        alert('Please configure GitHub settings first.');
+        await showDialog({ title: 'Error', body: 'Please configure GitHub settings first (Token, Owner, Repo).', confirmText: 'OK' });
         return;
     }
+
+    const commitMsg = await showDialog({ title: 'Commit Message', body: 'Enter a message for this commit:', input: true, confirmText: 'Push', cancelText: 'Cancel' });
+    if (!commitMsg) return;
 
     const btn = document.getElementById('push-github');
     const originalText = btn ? btn.textContent : 'Push to GitHub';
@@ -7713,7 +7723,7 @@ async function pushToGitHub() {
     try {
         addMessage('assistant-vibe', 'Starting push to GitHub...');
 
-        // 1. Get current commit SHA of main/master
+        // 1. Get current commit SHA
         const repoUrl = `https://api.github.com/repos/${state.githubOwner}/${state.githubRepo}`;
         const headers = {
             'Authorization': `token ${state.githubToken}`,
@@ -7721,22 +7731,41 @@ async function pushToGitHub() {
             'Content-Type': 'application/json'
         };
 
-        let defaultBranch = 'main';
-        let baseSha = null;
-
-        try {
-            const repoRes = await fetch(repoUrl, { headers });
-            if (!repoRes.ok) throw new Error('Failed to fetch repo info');
-            const repoData = await repoRes.json();
-            defaultBranch = repoData.default_branch;
-        } catch (e) {
-            console.warn('Could not determine default branch, assuming main', e);
+        let branch = state.githubBranch;
+        if (!branch) {
+            try {
+                const repoRes = await fetch(repoUrl, { headers });
+                if (!repoRes.ok) throw new Error(`Failed to fetch repo info: ${repoRes.status}`);
+                const repoData = await repoRes.json();
+                branch = repoData.default_branch || 'main';
+            } catch (e) {
+                console.warn('Could not determine default branch, assuming main', e);
+                branch = 'main';
+            }
         }
 
-        const refRes = await fetch(`${repoUrl}/git/ref/heads/${defaultBranch}`, { headers });
+        let baseSha = null;
+        const refRes = await fetch(`${repoUrl}/git/ref/heads/${branch}`, { headers });
         if (refRes.ok) {
             const refData = await refRes.json();
             baseSha = refData.object.sha;
+        } else if (refRes.status === 404) {
+            // Branch doesn't exist, try to find default branch to branch off or start empty?
+            // For now, if provided branch doesn't exist, we error out or need to create it.
+            // Let's try to get default branch SHA if explicit branch failed.
+            if (state.githubBranch) {
+                 const defaultRes = await fetch(repoUrl, { headers });
+                 if (defaultRes.ok) {
+                     const dData = await defaultRes.json();
+                     const dRef = await fetch(`${repoUrl}/git/ref/heads/${dData.default_branch}`, { headers });
+                     if (dRef.ok) {
+                         baseSha = (await dRef.json()).object.sha;
+                         // We will create the ref later
+                     }
+                 }
+            }
+        } else {
+             throw new Error(`Failed to fetch ref for branch ${branch}: ${refRes.statusText}`);
         }
 
         // 2. Create blobs for each file
@@ -7812,24 +7841,35 @@ async function pushToGitHub() {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                message: 'Update from VibeSim',
+                message: commitMsg || 'Update from VibeSim',
                 tree: treeData.sha,
                 parents: baseSha ? [baseSha] : []
             })
         });
-        if (!commitRes.ok) throw new Error('Failed to create commit');
+        if (!commitRes.ok) throw new Error(`Failed to create commit: ${commitRes.statusText}`);
         const commitData = await commitRes.json();
 
-        // 5. Update Ref
-        const updateRes = await fetch(`${repoUrl}/git/refs/heads/${defaultBranch}`, {
+        // 5. Update Ref (or create if new branch)
+        // If we are on a new branch, we might need to POST to refs instead of PATCH
+        // Try PATCH first, if 404/fail, try create (POST)
+        let updateRes = await fetch(`${repoUrl}/git/refs/heads/${branch}`, {
             method: 'PATCH',
             headers,
-            body: JSON.stringify({ sha: commitData.sha, force: false }) // force: false to be safe
+            body: JSON.stringify({ sha: commitData.sha, force: false })
         });
 
-        if (!updateRes.ok) throw new Error('Failed to update ref');
+        if (updateRes.status === 404 || !updateRes.ok) {
+             // Try creating the ref
+             updateRes = await fetch(`${repoUrl}/git/refs`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: commitData.sha })
+            });
+        }
 
-        addMessage('assistant-vibe', `Successfully pushed to ${state.githubOwner}/${state.githubRepo} on branch ${defaultBranch}.`);
+        if (!updateRes.ok) throw new Error(`Failed to update/create ref for ${branch}: ${updateRes.statusText}`);
+
+        addMessage('assistant-vibe', `Successfully pushed to ${state.githubOwner}/${state.githubRepo} on branch ${branch}.`);
         showSnackbar('Pushed to GitHub successfully!');
 
     } catch (e) {
@@ -7843,9 +7883,18 @@ async function pushToGitHub() {
 
 async function pullFromGitHub() {
     if (!state.githubToken || !state.githubOwner || !state.githubRepo) {
-        alert('Please configure GitHub settings first.');
+        await showDialog({ title: 'Error', body: 'Please configure GitHub settings first.', confirmText: 'OK' });
         return;
     }
+
+    // Confirm overwrite
+    const confirmed = await showDialog({
+        title: 'Confirm Pull',
+        body: 'This will overwrite your local files with the latest version from GitHub. Are you sure?',
+        confirmText: 'Overwrite',
+        cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
 
     const btn = document.getElementById('pull-github');
     const originalText = btn ? btn.textContent : 'Pull from GitHub';
@@ -7860,22 +7909,48 @@ async function pullFromGitHub() {
             'Accept': 'application/vnd.github.v3+json'
         };
 
-        // Get default branch
-        let defaultBranch = 'main';
-        try {
-            const repoRes = await fetch(repoUrl, { headers });
-            if (!repoRes.ok) throw new Error('Failed to fetch repo info');
-            const repoData = await repoRes.json();
-            defaultBranch = repoData.default_branch;
-        } catch (e) {
-            console.warn('Could not determine default branch, assuming main', e);
+        let branch = state.githubBranch;
+        if (!branch) {
+            try {
+                const repoRes = await fetch(repoUrl, { headers });
+                if (!repoRes.ok) throw new Error('Failed to fetch repo info');
+                const repoData = await repoRes.json();
+                branch = repoData.default_branch || 'main';
+            } catch (e) {
+                console.warn('Could not determine default branch, assuming main', e);
+                branch = 'main';
+            }
         }
 
         // Get Tree (recursive)
-        const treeRes = await fetch(`${repoUrl}/git/trees/${defaultBranch}?recursive=1`, { headers });
-        if (!treeRes.ok) throw new Error('Failed to fetch file tree');
+        // Note: Using trees endpoint with recursive=1 handles large repos better than contents API
+        const treeRes = await fetch(`${repoUrl}/git/trees/${branch}?recursive=1`, { headers });
+        if (!treeRes.ok) {
+             // Try fetching branch SHA first if tree fetch fails (maybe branch name vs ref issue)
+             const refRes = await fetch(`${repoUrl}/git/ref/heads/${branch}`, { headers });
+             if (refRes.ok) {
+                 const refData = await refRes.json();
+                 const treeRes2 = await fetch(`${repoUrl}/git/trees/${refData.object.sha}?recursive=1`, { headers });
+                 if (!treeRes2.ok) throw new Error(`Failed to fetch file tree for ${branch}`);
+                 const treeData2 = await treeRes2.json();
+                 return processTree(treeData2, headers, btn, originalText);
+             }
+             throw new Error(`Failed to fetch file tree: ${treeRes.statusText}`);
+        }
         const treeData = await treeRes.json();
+        await processTree(treeData, headers, btn, originalText); // Extracted helper or continue inline logic
 
+        // Inline logic for now to minimize diff churn unless complex
+    } catch (e) {
+        console.error('GitHub Pull Error:', e);
+        addMessage('assistant-vibe', `Pull failed: ${e.message}`);
+        await showDialog({ title: 'Pull Failed', body: e.message, confirmText: 'OK' });
+        if (btn) { btn.disabled = false; btn.textContent = originalText; }
+    }
+}
+
+async function processTree(treeData, headers, btn, originalText) {
+    try {
         if (treeData.truncated) {
             addMessage('assistant-vibe', 'Warning: Repo is too large, some files may be missing.');
         }
@@ -7940,9 +8015,8 @@ async function pullFromGitHub() {
     } catch (e) {
         console.error('GitHub Pull Error:', e);
         addMessage('assistant-vibe', `Pull failed: ${e.message}`);
-        alert(`Pull failed: ${e.message}`);
-    } finally {
-        if (btn) { btn.disabled = false; btn.textContent = originalText; }
+        // await showDialog({ title: 'Pull Failed', body: e.message, confirmText: 'OK' }); // moved to main function catch
+        throw e; // rethrow for main handler
     }
 }
 
