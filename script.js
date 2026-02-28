@@ -1029,37 +1029,45 @@ async function saveProjectsToStorage(forceSync = false, createVersion = false) {
 }
 
 async function initializeModels() {
+    // Define Pollinations models
+    const pollinationsModels = [
+        { id: 'openai', name: 'GPT-4o (Pollinations)', cost: 0, info: 'Pollinations AI Free Default' },
+        { id: 'qwen-coder', name: 'Qwen Coder (Pollinations)', cost: 0, info: 'Optimized for Code' },
+        { id: 'claude', name: 'Claude (Pollinations)', cost: 0, info: 'Anthropic Claude via Pollinations' },
+        { id: 'mistral', name: 'Mistral (Pollinations)', cost: 0, info: 'Mistral Large via Pollinations' }
+    ];
+
     try {
         const base = new URL(state.apiEndpoint).origin;
         const response = await fetch(`${base}/models`);
         const data = await response.json();
         
         if (data.success && Array.isArray(data.models)) {
-            state.availableModels = data.models;
-            // Update UI trigger if model changed
-            const current = state.availableModels.find(m => m.id === state.currentModel);
-            if (!current && state.availableModels.length > 0) {
-                state.currentModel = state.availableModels[0].id;
-                const nameSpan = document.getElementById('selected-model-name');
-                if (nameSpan) nameSpan.textContent = state.availableModels[0].name;
-            }
+            // Append the fetched models to the Pollinations models
+            state.availableModels = [...pollinationsModels, ...data.models];
+        } else {
+            throw new Error("Invalid format in fetched models");
         }
     } catch (error) {
-        console.error('Failed to fetch models', error);
-        // Fallback to minimal hardcoded if fetch fails
+        console.error('Failed to fetch models, using defaults.', error);
+        // Fallback to minimal hardcoded if fetch fails, appended to Pollinations models
         state.availableModels = [
-            { id: 'openai', name: 'GPT-4o (Pollinations)', cost: 0, info: 'Pollinations AI Free Default' },
-            { id: 'qwen-coder', name: 'Qwen Coder (Pollinations)', cost: 0, info: 'Optimized for Code' },
-            { id: 'claude', name: 'Claude (Pollinations)', cost: 0, info: 'Anthropic Claude via Pollinations' },
-            { id: 'mistral', name: 'Mistral (Pollinations)', cost: 0, info: 'Mistral Large via Pollinations' },
+            ...pollinationsModels,
             { id: 'glm-4.7-flash', name: 'GLM 4.7', cost: 2, info: 'Advanced GLM Model' },
             { id: 'glm-4.5-flash', name: 'GLM 4.5', cost: 1, info: 'Standard GLM Model' }
         ];
+    }
 
-        // Ensure default model is set
-        if (!state.currentModel || !state.availableModels.find(m => m.id === state.currentModel)) {
-            state.currentModel = 'openai';
-        }
+    // Ensure default model is set to the Pollinations default if not already set or invalid
+    if (!state.currentModel || !state.availableModels.find(m => m.id === state.currentModel)) {
+        state.currentModel = 'openai';
+    }
+
+    // Update UI immediately if the DOM is ready
+    const nameSpan = document.getElementById('selected-model-name');
+    if (nameSpan) {
+        const active = state.availableModels.find(m => m.id === state.currentModel);
+        if (active) nameSpan.textContent = active.name;
     }
 }
 
@@ -1660,7 +1668,7 @@ function setupEventListeners() {
                 // Seed random ensures fresh image each generation
                 const seed = Math.floor(Math.random() * 10000000);
                 const encodedPrompt = encodeURIComponent(prompt);
-                const url = \`https://image.pollinations.ai/prompt/\${encodedPrompt}?seed=\${seed}&width=1024&height=1024&nologo=true\`;
+                const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&width=1024&height=1024&nologo=true`;
 
                 // Pre-load image to avoid broken UI
                 await new Promise((resolve, reject) => {
@@ -1680,7 +1688,7 @@ function setupEventListeners() {
                         const u = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = u;
-                        a.download = \`pollinations-img-\${seed}.jpg\`;
+                        a.download = `pollinations-img-${seed}.jpg`;
                         a.click();
                         window.URL.revokeObjectURL(u);
                     } catch(e) { console.error('Image download error', e); }
@@ -1711,7 +1719,7 @@ function setupEventListeners() {
             resDiv.classList.add('hidden');
 
             try {
-                const url = \`https://text.pollinations.ai/\${encodeURIComponent(text)}?model=\${voice}\`;
+                const url = `https://text.pollinations.ai/${encodeURIComponent(text)}?model=${voice}`;
 
                 // Pollinations text endpoint doubles as an audio TTS endpoint based on content-type
                 // but realistically they route TTS through text.pollinations.ai with specific flags or just return binary.
@@ -1728,7 +1736,7 @@ function setupEventListeners() {
                 dlBtn.onclick = () => {
                     const a = document.createElement('a');
                     a.href = blobUrl;
-                    a.download = \`tts-\${voice}-\${Date.now()}.mp3\`;
+                    a.download = `tts-${voice}-${Date.now()}.mp3`;
                     a.click();
                 };
             } catch (err) {
@@ -3775,8 +3783,8 @@ async function renderIframeFromFiles(iframe, files) {
         const sortedPaths = Object.keys(assetUrlMap).sort((a, b) => b.length - a.length);
         sortedPaths.forEach(projPath => {
             const url = assetUrlMap[projPath];
-            const esc = projPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`(['"\`])(?:\\.\\/|\\/)?${esc}\\1`, 'g');
+            const esc = projPath.replace(/[.*+?^${}()|[\]\\]/g, '\$&');
+            const regex = new RegExp(`(['"`])(?:\\.\\/|\\/)?${esc}\\1`, 'g');
             result = result.replace(regex, `$1${url}$1`);
         });
         return result;
@@ -3790,18 +3798,18 @@ async function renderIframeFromFiles(iframe, files) {
         const content = String(file.content || '');
         if (path.endsWith('.css')) {
             let cssContent = replaceAssetPathsInContent(content);
-            const linkRegex = new RegExp(`<link[^>]*href=["'](?:\\/|\\.\\/)?${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>`, 'g');
+            const linkRegex = new RegExp(`<link[^>]*href=["'](?:\\/|\\.\\/)?${path.replace(/[.*+?^${}()|[\]\\]/g, '\$&')}["'][^>]*>`, 'g');
             html = html.replace(linkRegex, `<style>${cssContent}</style>`);
         } else if (path.endsWith('.js')) {
             let jsContent = replaceAssetPathsInContent(content);
-            const scriptRegex = new RegExp(`<script[^>]*src=["'](?:\\/|\\.\\/)?${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>\\s*<\\/script>`, 'g');
+            const scriptRegex = new RegExp(`<script[^>]*src=["'](?:\\/|\\.\\/)?${path.replace(/[.*+?^${}()|[\]\\]/g, '\$&')}["'][^>]*>\\s*<\\/script>`, 'g');
             html = html.replace(scriptRegex, `<script>${jsContent}<\/script>`);
         }
     });
 
     // Replace references in HTML (src/href/url(...) etc.) with asset URLs
     for (const [p, url] of Object.entries(assetUrlMap)) {
-        const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\$&');
         const srcRegex = new RegExp(`(src=)(["']?)(?:\\/|\\.\\/|\\.\\.\\/)?(${esc})\\2`, 'g');
         const hrefRegex = new RegExp(`(href=)(["']?)(?:\\/|\\.\\/|\\.\\.\\/)?(${esc})\\2`, 'g');
         const cssUrlRegex = new RegExp(`url\\((['"]?)(?:\\/|\\.\\/|\\.\\.\\/)?${esc}\\1\\)`, 'g');
@@ -4210,7 +4218,7 @@ function openVersionsModal(projectId) {
 
                 // helper utilities used above
                 function escapeRegExp(s) {
-                    return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\$&');
                 }
                 function getPreviewInjectionSnippet() {
                     // small snippet to preserve runtime error reporting behavior in version preview if possible
@@ -4926,22 +4934,38 @@ Banners: ads.renderBanner('#container') — container recommended to be square (
 
     // If Pollinations is the default, adapt the payload and endpoint
     if (state.pollinationsDefault) {
-        let systemPrompt = `You are VibeSim AI, an expert coding assistant.\n\n`;
-        if (documentation) systemPrompt += `${documentation}\n\n`;
+        let systemPrompt = `You are VibeSim AI, a 'SuperAgent' coding harness.
+You possess multiple dynamic 'Skills' and orchestrate 'Sub-Agents' to handle complex tasks.
 
-        systemPrompt += `Current Codebase Structure:\n${body.codebase.structure}\n\n`;
-        systemPrompt += `File Contents:\n`;
+**Core Philosophy (Superpowers & DeerFlow):**
+1. **Plan Before Execution:** Always break down the user's request into smaller, logical steps before writing code. If the request is vague, ask clarifying questions.
+2. **Test-Driven Development (TDD):** Prioritize RED-GREEN-REFACTOR. When feasible, create failing tests first, then write minimal code to pass them.
+3. **Sub-Agent Decomposition:** Mentally spawn specific sub-agents based on context (e.g., 'Act as a Design Architect' for UI, 'Act as a System Engineer' for logic, 'Act as a QA Reviewer' for validation).
+4. **Complexity Reduction:** Favor YAGNI (You Aren't Gonna Need It) and DRY (Don't Repeat Yourself). Keep solutions minimal and evidence-based.
+
+**Current Capabilities Context:**
+- You have access to a virtual file system and sandboxed preview environment.
+- Any code you write via JSON blocks is immediately applied and tested in the user's browser.
+`;
+
+        if (documentation) systemPrompt += `\n**Available SDKs/APIs:**\n${documentation}\n\n`;
+
+        systemPrompt += `**Current Codebase Structure:**\n${body.codebase.structure}\n\n`;
+        systemPrompt += `**File Contents:**\n`;
         for (const file of body.codebase.files) {
             systemPrompt += `\n--- ${file.path} ---\n${file.content}\n`;
         }
 
-        systemPrompt += `\nRespond strictly with the text of your explanation, followed by a JSON code block containing an array of operations if any code needs changing. Example:
-\`\`\`json
+        systemPrompt += `\n**Output Format Requirements:**
+Respond strictly with the text of your explanation (including your step-by-step plan if starting a new task, or noting which 'Sub-Agent' persona you are utilizing), followed by a JSON code block containing an array of operations if any code needs changing.
+Example:
+```json
 [
   { "type": "create", "path": "index.html", "content": "..." },
   { "type": "search-replace", "path": "app.js", "search": "old", "replace": "new" }
 ]
-\`\`\``;
+```
+Always ensure your JSON is valid.`;
 
         const messages = [
             { role: "system", content: systemPrompt },
@@ -6535,8 +6559,8 @@ async function updatePreview() {
             const url = assetUrlMap[projPath];
             // Match the path if it's inside quotes (common in JS/CSS)
             // e.g., 'asset.png', "./asset.png", "/asset.png"
-            const esc = projPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`(['"\`])(?:\\.\\/|\\/)?${esc}\\1`, 'g');
+            const esc = projPath.replace(/[.*+?^${}()|[\]\\]/g, '\$&');
+            const regex = new RegExp(`(['"`])(?:\\.\\/|\\/)?${esc}\\1`, 'g');
             result = result.replace(regex, `$1${url}$1`);
         });
         return result;
@@ -6576,7 +6600,7 @@ async function updatePreview() {
         // img, audio, video, source, link rel=icon, script[src] (if any left), and others
         for (const [p, url] of Object.entries(assetUrlMap)) {
             // escape special regex chars in path
-            const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\$&');
 
             // Build regex variants so we correctly replace:
             // - src="/path", src='path', src=path (with or without leading slash)
