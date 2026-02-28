@@ -449,6 +449,13 @@
     }
     </script>
     <!-- JSZip is also dynamically handled by the app (ensureJSZip) to provide fallbacks, but prefer the local global above -->
+    <script type="importmap">
+        {
+            "imports": {
+                "@webcontainer/api": "https://cdn.jsdelivr.net/npm/@webcontainer/api@1.2.1/+esm"
+            }
+        }
+    </script>
     <script type="module" src="script.js"></script>
 </body>
 </html>
