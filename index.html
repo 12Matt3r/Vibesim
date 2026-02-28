@@ -115,6 +115,15 @@
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     </button>
 
+                    <button class="activity-item" data-panel="media" title="Media Generator">
+                        <!-- Image/Media icon -->
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                    </button>
+
                     <!-- Settings Panel Icon -->
                     <button class="activity-item" data-panel="settings" title="Settings">
                         <!-- Cleaner gear icon for Settings -->
@@ -286,6 +295,19 @@
                                 <div style="font-weight:700;margin-bottom:12px;color:#e6eef8;">Integrations</div>
 
                                 <div style="margin-bottom:16px;">
+                                    <div style="font-size:11px;font-weight:700;color:#9aa6b2;margin-bottom:4px;text-transform:uppercase;">Pollinations AI</div>
+                                    <div style="margin-bottom:8px">
+                                        <label style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:8px;">
+                                            <input type="checkbox" id="pollinations-default-toggle" checked />
+                                            <span>Use Pollinations AI as default provider</span>
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <input type="password" id="pollinations-api-key" placeholder="Pollinations API Key (optional)" style="width:100%;background:#0b0b0b;border:1px solid #333;padding:8px;border-radius:6px;color:#e6eef8;font-size:12px;">
+                                    </div>
+                                </div>
+
+                                <div style="margin-bottom:16px;">
                                     <div style="font-size:11px;font-weight:700;color:#9aa6b2;margin-bottom:4px;text-transform:uppercase;">Custom AI API</div>
                                     <div style="margin-bottom:8px">
                                         <input type="text" id="custom-api-endpoint" placeholder="API Endpoint (e.g. https://api.openai.com/v1/chat/completions)" style="width:100%;background:#0b0b0b;border:1px solid #333;padding:8px;border-radius:6px;color:#e6eef8;font-size:12px;">
@@ -315,6 +337,45 @@
                                         <button id="push-github" class="btn-secondary" style="flex:1;">Push to GitHub</button>
                                         <button id="pull-github" class="btn-secondary" style="flex:1;">Pull from GitHub</button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Media Panel (Pollinations Image/Audio) -->
+                    <div id="media-panel" class="panel flex flex-col h-full">
+                        <div class="p-4 border-b border-[#262626]">
+                            <span class="text-xs font-bold uppercase tracking-wider text-[#888]">Media Generator</span>
+                        </div>
+                        <div class="p-4 space-y-3 flex-1 overflow-y-auto">
+                            <!-- Image Generation -->
+                            <div style="margin-bottom: 24px;">
+                                <div style="font-size:11px;font-weight:700;color:#9aa6b2;margin-bottom:8px;text-transform:uppercase;">Generate Image</div>
+                                <textarea id="image-prompt" class="w-full bg-[#1a1a1a] border border-[#262626] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#444] resize-none" rows="2" placeholder="Describe the image..."></textarea>
+                                <button id="generate-image-btn" class="w-full mt-2 py-2 bg-[#1a1a1a] hover:bg-[#262626] rounded-lg text-xs font-bold transition-colors">Generate Image</button>
+                                <div id="image-result" class="mt-4 hidden text-center">
+                                    <img id="generated-image" class="max-w-full rounded-lg border border-[#333] mb-2" src="" alt="Generated image" />
+                                    <button id="download-image-btn" class="text-[10px] text-[#888] hover:text-white underline">Download Image</button>
+                                </div>
+                            </div>
+                            <!-- Audio Generation -->
+                            <div style="padding-top:16px; border-top:1px solid #262626;">
+                                <div style="font-size:11px;font-weight:700;color:#9aa6b2;margin-bottom:8px;text-transform:uppercase;">Generate Audio</div>
+                                <textarea id="audio-prompt" class="w-full bg-[#1a1a1a] border border-[#262626] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#444] resize-none" rows="2" placeholder="Text to speak..."></textarea>
+                                <div style="display:flex;gap:8px;margin-top:8px;">
+                                    <select id="audio-voice" class="flex-1 bg-[#1a1a1a] border border-[#262626] rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#444] text-white">
+                                        <option value="alloy">Alloy</option>
+                                        <option value="echo">Echo</option>
+                                        <option value="fable">Fable</option>
+                                        <option value="onyx">Onyx</option>
+                                        <option value="nova">Nova</option>
+                                        <option value="shimmer">Shimmer</option>
+                                    </select>
+                                </div>
+                                <button id="generate-audio-btn" class="w-full mt-2 py-2 bg-[#1a1a1a] hover:bg-[#262626] rounded-lg text-xs font-bold transition-colors">Generate Audio</button>
+                                <div id="audio-result" class="mt-4 hidden text-center">
+                                    <audio id="generated-audio" controls class="w-full mb-2 h-8"></audio>
+                                    <button id="download-audio-btn" class="text-[10px] text-[#888] hover:text-white underline">Download Audio</button>
                                 </div>
                             </div>
                         </div>

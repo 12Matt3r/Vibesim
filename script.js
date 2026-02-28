@@ -445,6 +445,8 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,-apple-system}
     currentViewingPost: null,
     externalResourceAllowances: new Set(),
     // Integrations
+    pollinationsDefault: true,
+    pollinationsApiKey: '', // Kept empty in source, rely on localStorage
     customApiEndpoint: '',
     customApiKey: '',
     githubToken: '',
@@ -729,6 +731,11 @@ async function init() {
     state.prompterId = localStorage.getItem('vibesim_prompter_id') || null;
 
     // Restore Integrations
+    const storedPollinationsDefault = localStorage.getItem('vibesim_pollinations_default');
+    if (storedPollinationsDefault !== null) {
+        state.pollinationsDefault = storedPollinationsDefault === 'true';
+    }
+    state.pollinationsApiKey = localStorage.getItem('vibesim_pollinations_key') || '';
     state.customApiEndpoint = localStorage.getItem('vibesim_custom_endpoint') || '';
     state.customApiKey = localStorage.getItem('vibesim_custom_key') || '';
     state.githubToken = localStorage.getItem('vibesim_github_token') || '';
@@ -1041,9 +1048,18 @@ async function initializeModels() {
         console.error('Failed to fetch models', error);
         // Fallback to minimal hardcoded if fetch fails
         state.availableModels = [
+            { id: 'openai', name: 'GPT-4o (Pollinations)', cost: 0, info: 'Pollinations AI Free Default' },
+            { id: 'qwen-coder', name: 'Qwen Coder (Pollinations)', cost: 0, info: 'Optimized for Code' },
+            { id: 'claude', name: 'Claude (Pollinations)', cost: 0, info: 'Anthropic Claude via Pollinations' },
+            { id: 'mistral', name: 'Mistral (Pollinations)', cost: 0, info: 'Mistral Large via Pollinations' },
             { id: 'glm-4.7-flash', name: 'GLM 4.7', cost: 2, info: 'Advanced GLM Model' },
             { id: 'glm-4.5-flash', name: 'GLM 4.5', cost: 1, info: 'Standard GLM Model' }
         ];
+
+        // Ensure default model is set
+        if (!state.currentModel || !state.availableModels.find(m => m.id === state.currentModel)) {
+            state.currentModel = 'openai';
+        }
     }
 }
 
@@ -1589,6 +1605,8 @@ function setupEventListeners() {
     const saveIntBtn = document.getElementById('save-integrations');
     if (saveIntBtn) {
         saveIntBtn.addEventListener('click', () => {
+            const pollinationsToggle = document.getElementById('pollinations-default-toggle');
+            const pollinationsKey = document.getElementById('pollinations-api-key');
             const customEnd = document.getElementById('custom-api-endpoint');
             const customKey = document.getElementById('custom-api-key');
             const ghToken = document.getElementById('github-token');
@@ -1596,6 +1614,8 @@ function setupEventListeners() {
             const ghRepo = document.getElementById('github-repo');
             const ghBranch = document.getElementById('github-branch');
 
+            state.pollinationsDefault = pollinationsToggle ? pollinationsToggle.checked : true;
+            state.pollinationsApiKey = pollinationsKey ? pollinationsKey.value.trim() : '';
             state.customApiEndpoint = customEnd ? customEnd.value.trim() : '';
             state.customApiKey = customKey ? customKey.value.trim() : '';
             state.githubToken = ghToken ? ghToken.value.trim() : '';
@@ -1603,6 +1623,8 @@ function setupEventListeners() {
             state.githubRepo = ghRepo ? ghRepo.value.trim() : '';
             state.githubBranch = ghBranch ? ghBranch.value.trim() : '';
 
+            localStorage.setItem('vibesim_pollinations_default', state.pollinationsDefault ? 'true' : 'false');
+            localStorage.setItem('vibesim_pollinations_key', state.pollinationsApiKey);
             localStorage.setItem('vibesim_custom_endpoint', state.customApiEndpoint);
             localStorage.setItem('vibesim_custom_key', state.customApiKey);
             localStorage.setItem('vibesim_github_token', state.githubToken);
@@ -1619,6 +1641,105 @@ function setupEventListeners() {
 
     const pullBtn = document.getElementById('pull-github');
     if (pullBtn) pullBtn.addEventListener('click', pullFromGitHub);
+
+    // Media Generator Events
+    const generateImageBtn = document.getElementById('generate-image-btn');
+    if (generateImageBtn) {
+        generateImageBtn.addEventListener('click', async () => {
+            const prompt = document.getElementById('image-prompt').value.trim();
+            if (!prompt) return;
+            const resDiv = document.getElementById('image-result');
+            const imgEl = document.getElementById('generated-image');
+            const dlBtn = document.getElementById('download-image-btn');
+
+            generateImageBtn.disabled = true;
+            generateImageBtn.textContent = 'Generating...';
+            resDiv.classList.add('hidden');
+
+            try {
+                // Seed random ensures fresh image each generation
+                const seed = Math.floor(Math.random() * 10000000);
+                const encodedPrompt = encodeURIComponent(prompt);
+                const url = \`https://image.pollinations.ai/prompt/\${encodedPrompt}?seed=\${seed}&width=1024&height=1024&nologo=true\`;
+
+                // Pre-load image to avoid broken UI
+                await new Promise((resolve, reject) => {
+                    const tempImg = new Image();
+                    tempImg.onload = resolve;
+                    tempImg.onerror = reject;
+                    tempImg.src = url;
+                });
+
+                imgEl.src = url;
+                resDiv.classList.remove('hidden');
+
+                // Set download link
+                dlBtn.onclick = async () => {
+                    try {
+                        const blob = await fetch(url).then(r => r.blob());
+                        const u = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = u;
+                        a.download = \`pollinations-img-\${seed}.jpg\`;
+                        a.click();
+                        window.URL.revokeObjectURL(u);
+                    } catch(e) { console.error('Image download error', e); }
+                };
+            } catch (err) {
+                console.error("Image generation failed", err);
+                showSnackbar('Failed to generate image.');
+            } finally {
+                generateImageBtn.disabled = false;
+                generateImageBtn.textContent = 'Generate Image';
+            }
+        });
+    }
+
+    const generateAudioBtn = document.getElementById('generate-audio-btn');
+    if (generateAudioBtn) {
+        generateAudioBtn.addEventListener('click', async () => {
+            const text = document.getElementById('audio-prompt').value.trim();
+            const voice = document.getElementById('audio-voice').value;
+            if (!text) return;
+
+            const resDiv = document.getElementById('audio-result');
+            const audioEl = document.getElementById('generated-audio');
+            const dlBtn = document.getElementById('download-audio-btn');
+
+            generateAudioBtn.disabled = true;
+            generateAudioBtn.textContent = 'Generating...';
+            resDiv.classList.add('hidden');
+
+            try {
+                const url = \`https://text.pollinations.ai/\${encodeURIComponent(text)}?model=\${voice}\`;
+
+                // Pollinations text endpoint doubles as an audio TTS endpoint based on content-type
+                // but realistically they route TTS through text.pollinations.ai with specific flags or just return binary.
+                // According to Pollin docs: model parameter dictates voice.
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Audio generation failed');
+
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+
+                audioEl.src = blobUrl;
+                resDiv.classList.remove('hidden');
+
+                dlBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = \`tts-\${voice}-\${Date.now()}.mp3\`;
+                    a.click();
+                };
+            } catch (err) {
+                console.error("Audio generation failed", err);
+                showSnackbar('Failed to generate audio.');
+            } finally {
+                generateAudioBtn.disabled = false;
+                generateAudioBtn.textContent = 'Generate Audio';
+            }
+        });
+    }
 }
 
 /**
@@ -4803,6 +4924,65 @@ Banners: ads.renderBanner('#container') — container recommended to be square (
         };
     })();
 
+    // If Pollinations is the default, adapt the payload and endpoint
+    if (state.pollinationsDefault) {
+        let systemPrompt = `You are VibeSim AI, an expert coding assistant.\n\n`;
+        if (documentation) systemPrompt += `${documentation}\n\n`;
+
+        systemPrompt += `Current Codebase Structure:\n${body.codebase.structure}\n\n`;
+        systemPrompt += `File Contents:\n`;
+        for (const file of body.codebase.files) {
+            systemPrompt += `\n--- ${file.path} ---\n${file.content}\n`;
+        }
+
+        systemPrompt += `\nRespond strictly with the text of your explanation, followed by a JSON code block containing an array of operations if any code needs changing. Example:
+\`\`\`json
+[
+  { "type": "create", "path": "index.html", "content": "..." },
+  { "type": "search-replace", "path": "app.js", "search": "old", "replace": "new" }
+]
+\`\`\``;
+
+        const messages = [
+            { role: "system", content: systemPrompt },
+            ...state.conversationHistory.slice(-10).map(m => ({ role: m.role, content: m.content })),
+            { role: "user", content: prompt }
+        ];
+
+        const headers = { 'Content-Type': 'application/json' };
+        if (state.pollinationsApiKey) {
+            headers['Authorization'] = `Bearer ${state.pollinationsApiKey}`;
+        }
+
+        const res = await fetch('https://text.pollinations.ai/openai', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                model: selectedModel,
+                messages: messages,
+                jsonMode: false
+            })
+        });
+
+        if (!res.ok) throw new Error(`Pollinations API Error: ${res.status}`);
+
+        const data = await res.json();
+        const responseText = data.choices[0].message.content;
+
+        // Very basic parsing to extract the JSON block if it exists
+        let blocks = [];
+        let textPart = responseText;
+        const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/);
+        if (jsonMatch) {
+            try {
+                blocks = JSON.parse(jsonMatch[1]);
+                textPart = responseText.replace(jsonMatch[0], '').trim();
+            } catch(e) { console.warn("Failed to parse blocks from Pollinations response", e); }
+        }
+
+        return { text: textPart, blocks, tasks: [] };
+    }
+
     // Post directly to the worker chat endpoint (worker base URL + /api/chat)
     const res = await fetch(state.apiEndpoint, {
         method: 'POST',
@@ -7280,6 +7460,8 @@ function renderSettingsPanel() {
         if (settingsLinked) settingsLinked.textContent = state.prompterId ? `Linked as: ${escapeHtml(state.prompterId)}` : '';
 
         // Populate Integrations inputs
+        const pollinationsToggle = document.getElementById('pollinations-default-toggle');
+        const pollinationsKey = document.getElementById('pollinations-api-key');
         const customEnd = document.getElementById('custom-api-endpoint');
         const customKey = document.getElementById('custom-api-key');
         const ghToken = document.getElementById('github-token');
@@ -7287,6 +7469,8 @@ function renderSettingsPanel() {
         const ghRepo = document.getElementById('github-repo');
         const ghBranch = document.getElementById('github-branch');
 
+        if (pollinationsToggle) pollinationsToggle.checked = state.pollinationsDefault;
+        if (pollinationsKey) pollinationsKey.value = state.pollinationsApiKey || '';
         if (customEnd) customEnd.value = state.customApiEndpoint || '';
         if (customKey) customKey.value = state.customApiKey || '';
         if (ghToken) ghToken.value = state.githubToken || '';
