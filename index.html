@@ -168,7 +168,7 @@
                                         <!-- Custom Model Dropdown -->
                                         <div class="custom-dropdown" id="model-dropdown">
                                             <div class="dropdown-trigger" id="model-trigger" title="Select AI Model">
-                                                <span id="selected-model-name">GLM 4.7</span>
+                                                <span id="selected-model-name">GPT-4o (Pollinations)</span>
                                                 <span class="dropdown-arrow">▾</span>
                                             </div>
                                             <div class="dropdown-menu" id="model-menu">
@@ -449,6 +449,13 @@
     }
     </script>
     <!-- JSZip is also dynamically handled by the app (ensureJSZip) to provide fallbacks, but prefer the local global above -->
+    <script type="importmap">
+        {
+            "imports": {
+                "@webcontainer/api": "https://cdn.jsdelivr.net/npm/@webcontainer/api@1.2.1/+esm"
+            }
+        }
+    </script>
     <script type="module" src="script.js"></script>
 </body>
 </html>
