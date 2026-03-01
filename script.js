@@ -3783,8 +3783,8 @@ async function renderIframeFromFiles(iframe, files) {
         const sortedPaths = Object.keys(assetUrlMap).sort((a, b) => b.length - a.length);
         sortedPaths.forEach(projPath => {
             const url = assetUrlMap[projPath];
-            const esc = projPath.replace(/[.*+?^${}()|[\]\\]/g, '\$&');
-            const regex = new RegExp(`(['"`])(?:\\.\\/|\\/)?${esc}\\1`, 'g');
+            const esc = projPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(['"\`])(?:\\.\\/|\\/)?${esc}\\1`, 'g');
             result = result.replace(regex, `$1${url}$1`);
         });
         return result;
@@ -3798,18 +3798,18 @@ async function renderIframeFromFiles(iframe, files) {
         const content = String(file.content || '');
         if (path.endsWith('.css')) {
             let cssContent = replaceAssetPathsInContent(content);
-            const linkRegex = new RegExp(`<link[^>]*href=["'](?:\\/|\\.\\/)?${path.replace(/[.*+?^${}()|[\]\\]/g, '\$&')}["'][^>]*>`, 'g');
+            const linkRegex = new RegExp(`<link[^>]*href=["'](?:\\/|\\.\\/)?${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$\\$\$&')}["'][^>]*>`, 'g');
             html = html.replace(linkRegex, `<style>${cssContent}</style>`);
         } else if (path.endsWith('.js')) {
             let jsContent = replaceAssetPathsInContent(content);
-            const scriptRegex = new RegExp(`<script[^>]*src=["'](?:\\/|\\.\\/)?${path.replace(/[.*+?^${}()|[\]\\]/g, '\$&')}["'][^>]*>\\s*<\\/script>`, 'g');
+            const scriptRegex = new RegExp(`<script[^>]*src=["'](?:\\/|\\.\\/)?${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$\\$\$&')}["'][^>]*>\\s*<\\/script>`, 'g');
             html = html.replace(scriptRegex, `<script>${jsContent}<\/script>`);
         }
     });
 
     // Replace references in HTML (src/href/url(...) etc.) with asset URLs
     for (const [p, url] of Object.entries(assetUrlMap)) {
-        const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\$&');
+        const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const srcRegex = new RegExp(`(src=)(["']?)(?:\\/|\\.\\/|\\.\\.\\/)?(${esc})\\2`, 'g');
         const hrefRegex = new RegExp(`(href=)(["']?)(?:\\/|\\.\\/|\\.\\.\\/)?(${esc})\\2`, 'g');
         const cssUrlRegex = new RegExp(`url\\((['"]?)(?:\\/|\\.\\/|\\.\\.\\/)?${esc}\\1\\)`, 'g');
@@ -4218,7 +4218,7 @@ function openVersionsModal(projectId) {
 
                 // helper utilities used above
                 function escapeRegExp(s) {
-                    return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\$&');
+                    return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$\\$\$&');
                 }
                 function getPreviewInjectionSnippet() {
                     // small snippet to preserve runtime error reporting behavior in version preview if possible
@@ -6559,8 +6559,8 @@ async function updatePreview() {
             const url = assetUrlMap[projPath];
             // Match the path if it's inside quotes (common in JS/CSS)
             // e.g., 'asset.png', "./asset.png", "/asset.png"
-            const esc = projPath.replace(/[.*+?^${}()|[\]\\]/g, '\$&');
-            const regex = new RegExp(`(['"`])(?:\\.\\/|\\/)?${esc}\\1`, 'g');
+            const esc = projPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(['"\`])(?:\\.\\/|\\/)?${esc}\\1`, 'g');
             result = result.replace(regex, `$1${url}$1`);
         });
         return result;
@@ -6600,7 +6600,7 @@ async function updatePreview() {
         // img, audio, video, source, link rel=icon, script[src] (if any left), and others
         for (const [p, url] of Object.entries(assetUrlMap)) {
             // escape special regex chars in path
-            const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\$&');
+            const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
             // Build regex variants so we correctly replace:
             // - src="/path", src='path', src=path (with or without leading slash)
